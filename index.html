@@ -54,6 +54,29 @@
             color: #842029;
             border: 1px solid #f5c2c7;
         }
+        /* Styles for the console output div */
+        #console-output {
+            background-color: #1e1e1e;
+            color: #00ff00; /* Green text for console */
+            font-family: 'Consolas', 'Monaco', 'Lucida Console', monospace;
+            font-size: 0.85rem;
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 0.5rem;
+            max-height: 200px; /* Limit height */
+            overflow-y: auto; /* Enable scrolling */
+            width: 100%;
+            box-sizing: border-box; /* Include padding in width */
+            white-space: pre-wrap; /* Preserve whitespace and wrap text */
+            word-break: break-all; /* Break long words */
+            border: 1px solid #333;
+        }
+        #console-output .error {
+            color: #ff4500; /* Orange-red for errors */
+        }
+        #console-output .warning {
+            color: #ffd700; /* Gold for warnings */
+        }
     </style>
 </head>
 <body class="p-4 bg-gray-100 min-h-screen flex flex-col items-center justify-center">
@@ -65,8 +88,41 @@
             Your Google Maps API key is included in the script tag.
         </p>
     </div>
+    <div id="console-output" class="container mx-auto p-6 bg-white rounded-lg shadow-xl max-w-4xl mt-4">
+        <strong>Console Output:</strong><br>
+    </div>
 
     <script>
+        // --- Console Override Setup (Must be at the very top of script) ---
+        const originalConsoleError = console.error;
+        const originalConsoleWarn = console.warn;
+        let consoleOutputDiv; // Will be assigned in initMap
+
+        function appendToConsoleOutput(message, type) {
+            if (consoleOutputDiv) {
+                const p = document.createElement('p');
+                p.className = type;
+                p.textContent = `[${type.toUpperCase()}] ${message}`;
+                consoleOutputDiv.appendChild(p);
+                // Scroll to bottom
+                consoleOutputDiv.scrollTop = consoleOutputDiv.scrollHeight;
+            }
+        }
+
+        console.error = function(...args) {
+            const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
+            appendToConsoleOutput(message, 'error');
+            originalConsoleError.apply(console, args);
+        };
+
+        console.warn = function(...args) {
+            const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
+            appendToConsoleOutput(message, 'warning');
+            originalConsoleWarn.apply(console, args);
+        };
+        // --- End Console Override Setup ---
+
+
         // Define the job listings data with more detailed descriptions, including rating, number of ratings, price range,
         // and a new 'openAtNoonWeekday' property for conditional coloring.
         const jobListings = [
@@ -111,6 +167,7 @@
         let userLocation = null;
         let geolocationMessageDiv;
         let distanceCircles = []; // Array to store the distance circles
+        let ringTimeMarkers = []; // Array to store markers for walking times on rings
 
         /**
          * Displays a message in the geolocation message div.
@@ -140,26 +197,29 @@
          * @param {google.maps.LatLngLiteral} center - The center point for the rings (user's location).
          */
         function drawDistanceRings(center) {
-            // Clear any existing circles from the map
+            // Clear any existing circles and time markers from the map
             distanceCircles.forEach(circle => circle.setMap(null));
-            distanceCircles = []; // Reset the array
+            distanceCircles = [];
+            ringTimeMarkers.forEach(marker => marker.setMap(null));
+            ringTimeMarkers = [];
 
-            const maxDistanceMiles = 4; // Max distance for rings (e.g., up to 4 miles)
+            const maxDistanceMiles = 4; // Max distance for rings
             const halfMileInMeters = 804.672; // 0.5 miles in meters
+            const avgWalkingSpeedMph = 3.1; // Average walking speed in miles per hour
 
-            // Calculate the number of rings based on max distance and increment
             const numRings = Math.floor(maxDistanceMiles / 0.5);
 
-            const baseFillAlpha = 0.05; // Starting transparency for fill (lighter blue)
-            const maxFillAlpha = 0.4;   // Ending transparency for fill (darker blue)
+            // Define alpha ranges for fill and stroke
+            const baseFillAlpha = 0.025; // Starting transparency for fill (lighter blue)
+            const maxFillAlpha = 0.2;   // Ending transparency for fill (darker blue)
             const fillAlphaIncrement = (maxFillAlpha - baseFillAlpha) / numRings;
 
-            const baseStrokeAlpha = 0.2; // Starting transparency for stroke (lighter grey)
-            const maxStrokeAlpha = 1.0;  // Ending transparency for stroke (black)
+            const baseStrokeAlpha = 0.1; // Starting transparency for stroke (lighter grey)
+            const maxStrokeAlpha = 0.8;  // Ending transparency for stroke (black)
             const strokeAlphaIncrement = (maxStrokeAlpha - baseStrokeAlpha) / numRings;
 
             for (let i = 1; i <= numRings; i++) {
-                const radius = i * halfMileInMeters;
+                const currentRadius = i * halfMileInMeters;
                 const currentFillAlpha = baseFillAlpha + (i - 1) * fillAlphaIncrement;
                 const currentStrokeAlpha = baseStrokeAlpha + (i - 1) * strokeAlphaIncrement;
 
@@ -167,16 +227,61 @@
                 const strokeColor = `rgba(0, 0, 0, ${currentStrokeAlpha})`; // Black color with increasing opacity
 
                 const circle = new google.maps.Circle({
-                    strokeColor: strokeColor, // Dynamic stroke color (grey to black)
+                    strokeColor: strokeColor,
                     strokeOpacity: 0.8,
                     strokeWeight: 1,
                     fillColor: fillColor,
-                    fillOpacity: currentFillAlpha, // Dynamic fill opacity
+                    fillOpacity: currentFillAlpha,
                     map: map,
                     center: center,
-                    radius: radius
+                    radius: currentRadius
                 });
-                distanceCircles.push(circle); // Store the circle object
+                distanceCircles.push(circle);
+
+                // Calculate approximate walking time for this ring
+                const distanceMiles = i * 0.5;
+                const walkingTimeMinutes = Math.round((distanceMiles / avgWalkingSpeedMph) * 60);
+
+                // Add markers for walking time at N, S, E, W edges
+                const headings = {
+                    'N': 0,
+                    'E': 90,
+                    'S': 180,
+                    'W': 270
+                };
+
+                for (const direction in headings) {
+                    const heading = headings[direction];
+                    // computeOffset returns LatLng, convert to LatLngLiteral for consistency if needed
+                    const point = google.maps.geometry.spherical.computeOffset(
+                        new google.maps.LatLng(center.lat, center.lng),
+                        currentRadius,
+                        heading
+                    );
+
+                    const timeMarker = new google.maps.Marker({
+                        map: map,
+                        position: point,
+                        icon: {
+                            path: google.maps.SymbolPath.CIRCLE, // Small circle for the marker
+                            scale: 0, // Make the icon invisible
+                            fillOpacity: 0,
+                            strokeOpacity: 0
+                        },
+                        label: {
+                            text: `${walkingTimeMinutes} min`,
+                            color: 'black', // Label color
+                            fontSize: '10px',
+                            fontWeight: 'bold',
+                            // Offset label slightly to avoid overlapping the ring line exactly
+                            // Adjust these values for optimal placement relative to the invisible circle icon
+                            // For N/S, adjust y; for E/W, adjust x.
+                            // This is a rough adjustment, fine-tuning might be needed.
+                            className: 'distance-label' // Add a class for potential custom styling if needed
+                        }
+                    });
+                    ringTimeMarkers.push(timeMarker);
+                }
             }
         }
 
@@ -384,7 +489,7 @@
                     <p><strong><em>Company:</em></strong> ${listing.company}</p>
                     <p><strong><em>Address:</em></strong> ${listing.address}</p>
                     <p><strong><em>Rating:</em></strong> ${listing.rating || 'N/A'} (${listing.numRatings || 0} reviews)</p>
-                    <p><strong><em>Price Range:</em></strong> ${listing.priceRange || 'N/A'}</p>
+                    <p><strong><em>Price Range:</em></b> ${listing.priceRange || 'N/A'}</p>
                     <p><strong><em>Walking Time from Your Location:</em></strong> ${walkingTime}</p>
                     ${descriptionContent}
                 </div>
