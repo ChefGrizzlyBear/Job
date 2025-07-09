@@ -77,11 +77,38 @@
         #console-output .warning {
             color: #ffd700; /* Gold for warnings */
         }
+        .button-group {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+        .button-group button {
+            padding: 0.75rem 1.5rem;
+            background-color: #4299e1; /* Blue color */
+            color: white;
+            border-radius: 0.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            border: none;
+        }
+        .button-group button:hover {
+            background-color: #3182ce; /* Darker blue on hover */
+        }
+        .button-group button:disabled {
+            background-color: #a0aec0; /* Grey for disabled */
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body class="p-4 bg-gray-100 min-h-screen flex flex-col items-center justify-center">
     <div class="container mx-auto p-6 bg-white rounded-lg shadow-xl max-w-4xl">
         <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Job Locations on Map</h1>
+
+        <div class="button-group">
+            <button id="center-map-button" disabled>Center Map on My Location</button>
+        </div>
+
         <div id="map" class="mb-6"></div>
         <div id="geolocation-message" class="alert d-none"></div>
         <p class="text-sm text-gray-600 text-center">
@@ -124,40 +151,58 @@
 
 
         // Define the job listings data with more detailed descriptions, including rating, number of ratings, price range,
-        // and a new 'openAtNoonWeekday' property for conditional coloring.
+        // and a new 'openAtNoonWeekday' property for conditional coloring, and 'datePosted'.
         const jobListings = [
-            { job: "Server", company: "Dimmi Dimmi Corner Italian", address: "1112 West Armitage Avenue, Chicago, IL", description: "Seeking an enthusiastic and experienced server to join our authentic Italian restaurant. Must have a passion for food, excellent customer service skills, and be able to thrive in a fast-paced environment. Responsibilities include taking orders, serving food and beverages, and ensuring guest satisfaction. We offer a friendly work environment and opportunities for growth.", rating: 4.5, numRatings: 320, priceRange: "$$", openAtNoonWeekday: true },
-            { job: "Server", company: "Francesca's Amici", address: "174 N York St, Elmhurst, IL 60126, United States", description: "Join our vibrant team at Francesca's Amici! We're looking for a friendly, efficient, and reliable server to provide exceptional dining experiences. Ideal candidates will have prior serving experience, strong communication skills, and a positive attitude. NOW HIRING Servers, bussers, bartenders... JOIN A WINNING TEAM @ Francesca's Amici in Elmhurst, IL. A successful and neighborhood Italian restaurant/bar that has been around for over 20 years is now hiring servers/bartenders/bussers. Be part of a great opportunity and an amazing staff that delivers first class service. Come show off your personality while giving brilliant service each day, each night, and everytime in-between.", rating: 4.2, numRatings: 580, priceRange: "$$$", openAtNoonWeekday: true },
-            { job: "Server", company: "Kingston Mines", address: "2548 N Halsted St, Chicago, IL, United States", description: "Night owl server needed for Chicago's legendary blues club. This is a high-energy, fast-paced environment requiring quick thinking and excellent multi-tasking abilities. Experience in a bar or live music venue is a plus. Must be comfortable working late nights and handling a high volume of customers. Great tips!", rating: 4.6, numRatings: 1200, priceRange: "$$", openAtNoonWeekday: false }, // Assuming a blues club might not be open at noon
-            { job: "Server", company: "Longman & Eagle", address: "2657 N Kedzie Ave, Chicago, IL", description: "Award-winning restaurant seeking an experienced server with a strong background in fine dining and craft beverages. Candidates should possess extensive menu knowledge, impeccable service standards, and a genuine passion for hospitality. Sommelier certification is a bonus. We pride ourselves on a unique culinary experience and a strong team.", rating: 4.7, numRatings: 750, priceRange: "$$$$", openAtNoonWeekday: true },
-            { job: "Cocktail Server", company: "Vela Bar Cocina", address: "Chicago, IL", description: "Energetic and charismatic cocktail server for a vibrant bar and cocina. Must be 21+ and have experience serving cocktails in a busy setting. Responsibilities include taking drink orders, delivering beverages, and maintaining a clean and inviting bar area. Opportunities for creative input on new drink menus.", rating: 4.3, numRatings: 210, priceRange: "$$$", openAtNoonWeekday: false }, // Assuming a bar might not be open at noon
-            { job: "Server", company: "Little Wok", address: "1950 W Division St, Chicago, IL 60622, United States", description: "Part-time server for a popular Asian eatery. We are looking for a reliable individual with flexible hours who can provide friendly and efficient service to our diverse clientele. Experience with Asian cuisine is a plus but not required. Join a close-knit team in a casual, fast-paced environment.", rating: 4.0, numRatings: 180, priceRange: "$", openAtNoonWeekday: true },
-            { job: "Server", company: "3rd Coast Cafe & Wine Bar", address: "1260 N Dearborn St, Chicago, IL, United States", description: "Charming cafe and wine bar seeking a server with a passion for hospitality and a good understanding of wine. Responsibilities include serving food and beverages, recommending wine pairings, and creating a welcoming atmosphere for our guests. Ideal for someone who enjoys a relaxed yet sophisticated setting.", rating: 4.4, numRatings: 400, priceRange: "$$$", openAtNoonWeekday: true },
-            { job: "Server", company: "Brownstone", address: "3937 N Lincoln Ave, Chicago, IL 60613, United States", description: "Casual American restaurant looking for a reliable and friendly server to join our neighborhood favorite. We value teamwork and a positive attitude. Prior serving experience is preferred, but we are willing to train motivated individuals. Enjoy a steady flow of regulars and a supportive staff.", rating: 4.1, numRatings: 300, priceRange: "$$", openAtNoonWeekday: true },
-            { job: "Server", company: "Lark Pizza", address: "3130 North Rockwell Street, Chicago, IL", description: "Pizza restaurant seeking a server to join our fun and dynamic team. If you love pizza and enjoy providing excellent customer service, this is the place for you! Responsibilities include taking orders, serving food, and ensuring a great dining experience for families and friends.", rating: 4.2, numRatings: 250, priceRange: "$", openAtNoonWeekday: true },
-            { job: "Server", company: "Chicago Waffles - South Loop", address: "1400 S Michigan Ave, Chicago, IL 60605, USA", description: "Breakfast and lunch server for a busy waffle house in the South Loop. Early mornings and weekend availability are required. Must be able to handle high volume and provide quick, friendly service to our hungry customers. A great spot for early risers!", rating: 4.3, numRatings: 600, priceRange: "$$", openAtNoonWeekday: true },
-            { job: "Server", company: "Chicago Waffles - Lincoln Square", address: "4768 North Lincoln Avenue, Chicago, IL", description: "Join our Lincoln Square team! Server position open for a popular brunch spot. We are looking for an energetic individual who enjoys a bustling environment and can provide memorable breakfast and lunch experiences. Become part of a local favorite.", rating: 4.4, numRatings: 550, priceRange: "$$", openAtNoonWeekday: true },
-            { job: "Server", company: "Zarella Pizzeria & Taverna", address: "531 N Wells St, Chicago, IL 60654", description: "New pizzeria and taverna hiring servers. This is a great opportunity for growth in a new establishment. We seek individuals with a strong work ethic and a desire to contribute to a positive team atmosphere. Be part of building a new culinary destination.", rating: 4.1, numRatings: 150, priceRange: "$$", openAtNoonWeekday: true },
-            { job: "Server", company: "Trino", address: "738 West Randolph Street, Chicago, IL", description: "Upscale restaurant seeking a professional and attentive server for our fine dining establishment. Candidates should have extensive knowledge of food and wine, impeccable service etiquette, and a commitment to guest satisfaction. Experience with high-profile clientele is a plus.", rating: 4.6, numRatings: 380, priceRange: "$$$$", openAtNoonWeekday: true },
-            { job: "Server", company: "Moody Tongue Brewing Company", address: "2515 South Wabash Avenue, Chicago, IL", description: "Server for a unique brewing company with a sophisticated tasting room. Craft beer knowledge is a significant plus. Responsibilities include guiding guests through our beer selections and serving food pairings. Ideal for those passionate about brewing and gourmet experiences.", rating: 4.5, numRatings: 290, priceRange: "$$$", openAtNoonWeekday: false }, // Assuming brewery might not be open for full service at noon
-            { job: "Server", company: "Mercadito", address: "108 West Kinzie Street, Chicago, IL, United States", description: "Vibrant Mexican restaurant seeking a server with a positive attitude and a passion for Latin cuisine. Must be able to work in a lively environment and provide excellent service to large parties. Experience with a high-volume, energetic crowd is preferred.", rating: 4.3, numRatings: 480, priceRange: "$$$", openAtNoonWeekday: true },
-            { job: "Server", company: "Galit", address: "2429 North Lincoln Avenue, Chicago, IL", description: "Michelin-starred Middle Eastern restaurant looking for experienced servers. Candidates should have a refined sense of hospitality, attention to detail, and a deep appreciation for culinary excellence. Prior experience in a similar setting is essential. Join a team dedicated to exceptional dining.", rating: 4.8, numRatings: 620, priceRange: "$$$$", openAtNoonWeekday: true },
-            { job: "Banquet Server (On Call)", company: "East Bank Club", address: "Chicago,IL", description: "On-call banquet server for a premier health and fitness club. Responsibilities include setting up and serving at various events, from corporate gatherings to private parties. Flexibility and a professional demeanor are key. Excellent opportunity for supplemental income.", rating: 4.0, numRatings: 90, priceRange: "$$$", openAtNoonWeekday: true },
-            { job: "Server", company: "Marriott", address: "Chicago,IL", description: "Hotel server position available at a downtown Marriott location. This role involves serving guests in our hotel restaurant, room service, and potentially banquets. Professionalism and a commitment to guest satisfaction are paramount. Work in a dynamic hospitality environment.", rating: 4.2, numRatings: 700, priceRange: "$$$", openAtNoonWeekday: true },
-            { job: "Server", company: "La Grande Boucherie - Chicago", address: "431 North Dearborn Street, Chicago, IL 60654", description: "French brasserie seeking a server with a passion for classic cuisine and an elegant service style. Knowledge of French culinary terms and wine is highly desirable. Join our team and transport guests to the heart of Paris with impeccable service.", rating: 4.5, numRatings: 450, priceRange: "$$$$", openAtNoonWeekday: true },
-            { job: "Banquet Server", company: "Julia Valler Event Staffing - Chicago", address: "Chicago, IL", description: "Event staffing company hiring banquet servers for various events across Chicago. We are looking for reliable, professional, and experienced individuals who can adapt to different event settings and client needs. Great for those seeking flexible work.", rating: 4.0, numRatings: 120, priceRange: "$$", openAtNoonWeekday: true },
-            { job: "Server", company: "Thattu", address: "2601 W Fletcher St, Chicago, IL 60618, United States", description: "South Indian restaurant seeking a server to provide excellent customer service and introduce guests to our unique flavors. Experience with Indian cuisine is a plus, but a willingness to learn and a friendly attitude are most important. Be part of a growing culinary scene.", rating: 4.6, numRatings: 190, priceRange: "$$", openAtNoonWeekday: true },
-            { job: "Server", company: "Grill 21", address: "208 South LaSalle Street, Chicago, IL", description: "Steakhouse and grill looking for a server with strong communication skills and a passion for delivering a premium dining experience. Knowledge of cuts of meat and wine pairings will be beneficial. Work in a sophisticated downtown setting.", rating: 4.4, numRatings: 310, priceRange: "$$$$", openAtNoonWeekday: true },
-            { job: "Server", company: "The Drifter", address: "676 North Orleans Street, Chicago, IL 60654, United States", description: "Unique speakeasy bar seeking a server for evening shifts. This role requires a flair for storytelling, excellent cocktail knowledge, and the ability to create an immersive experience for our patrons. Join a team that values creativity and exceptional service.", rating: 4.7, numRatings: 270, priceRange: "$$$", openAtNoonWeekday: false }, // Assuming a speakeasy is not open at noon
-            { job: "Lounge Server", company: "The Pearl Club Chicago", address: "495 North Milwaukee Avenue, Chicago, IL", description: "Exclusive lounge seeking a professional and discreet lounge server to cater to our discerning clientele. Experience in high-end establishments and a commitment to privacy and exceptional service are required. This is a role for those who excel in a refined environment.", rating: 4.8, numRatings: 110, priceRange: "$$$$", openAtNoonWeekday: false }, // Assuming a lounge is not open at noon
-            { job: "Server", company: "The Green Door Tavern", address: "678 N Orleans St, Chicago, IL, United States", description: "Historic tavern seeking a server to join our friendly team. If you enjoy a lively atmosphere and serving classic American fare, this is the perfect fit. Experience in a high-volume pub environment is a plus. Become part of Chicago's rich history.", rating: 4.3, numRatings: 500, priceRange: "$$", openAtNoonWeekday: true },
-            { job: "Server", company: "DeNucci's - Highland Park", address: "1850 2nd Street unit 110, Highland Park, IL", description: "Italian restaurant in Highland Park looking for a dedicated server. We offer a warm, family-friendly atmosphere and seek individuals who can provide attentive and personalized service to our guests. A great opportunity in a charming suburban setting.", rating: 4.1, numRatings: 160, priceRange: "$$", openAtNoonWeekday: true },
-            { job: "Barista/FOH", company: "Hewn - Evanston", address: "1733 Central St, Evanston, IL 60201", description: "Artisan bakery and cafe seeking a passionate barista and front-of-house staff. Must have excellent coffee-making skills, a friendly demeanor, and be able to handle transactions and customer inquiries efficiently. Join a team dedicated to quality baked goods and coffee.", rating: 4.5, numRatings: 800, priceRange: "$", openAtNoonWeekday: true },
-            { job: "Front Server", company: "Chicago Chop House", address: "60 W Ontario St, Chicago, IL 60654", description: "High-end steakhouse seeking a polished and experienced front server. Responsibilities include assisting the main server, clearing tables, refilling water, and ensuring the dining room runs smoothly. Attention to detail is crucial for this prestigious establishment.", rating: 4.7, numRatings: 900, priceRange: "$$$$", openAtNoonWeekday: true },
-            { job: "Server", company: "Monster Ramen", address: "3435 W Fullerton Ave, Chicago, IL 60647, United States", description: "Ramen shop looking for a server to handle orders, deliver delicious ramen, and provide excellent customer service. A love for Japanese cuisine and a fast-paced work ethic are ideal. Join a popular spot known for authentic flavors.", rating: 4.2, numRatings: 220, priceRange: "$", openAtNoonWeekday: true },
-            { job: "Server", company: "The Table at Crate", address: "Oak Brook, IL", description: "Restaurant within Crate & Barrel seeking a server for a unique dining experience. This role combines retail and hospitality, requiring a blend of customer service skills and an appreciation for home goods. A distinctive environment for a server.", rating: 4.3, numRatings: 280, priceRange: "$$$", openAtNoonWeekday: true },
-            { job: "Server", company: "Valhalla", address: "2020 W Division St, Chicago, IL 60622", description: "Modern American restaurant seeking a server for a dynamic environment. We are looking for individuals who are energetic, adaptable, and committed to providing a memorable dining experience. Be part of a contemporary culinary team.", rating: 4.0, numRatings: 140, priceRange: "$$", openAtNoonWeekday: true },
-            { job: "Server", company: "Chicago Athletic Association", address: "12 S Michigan Ave, Chicago, IL 60603", description: "Historic hotel seeking a server for its various dining outlets, including a rooftop bar and a classic tavern. This role requires versatility and the ability to provide high-quality service in different settings. A grand setting for a hospitality professional.", rating: 4.6, numRatings: 1100, priceRange: "$$$$", openAtNoonWeekday: true }
+            { job: "Server", company: "Dimmi Dimmi Corner Italian", address: "1112 West Armitage Avenue, Chicago, IL", description: "Seeking an enthusiastic and experienced server to join our authentic Italian restaurant. Must have a passion for food, excellent customer service skills, and be able to thrive in a fast-paced environment. Responsibilities include taking orders, serving food and beverages, and ensuring guest satisfaction. We offer a friendly work environment and opportunities for growth.", rating: 4.5, numRatings: 320, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 1 day ago" },
+            { job: "Server", company: "Francesca's Amici", address: "174 N York St, Elmhurst, IL 60126, United States", description: "Join our vibrant team at Francesca's Amici! We're looking for a friendly, efficient, and reliable server to provide exceptional dining experiences. Ideal candidates will have prior serving experience, strong communication skills, and a positive attitude. NOW HIRING Servers, bussers, bartenders... JOIN A WINNING TEAM @ Francesca's Amici in Elmhurst, IL. A successful and neighborhood Italian restaurant/bar that has been around for over 20 years is now hiring servers/bartenders/bussers. Be part of a great opportunity and an amazing staff that delivers first class service. Come show off your personality while giving brilliant service each day, each night, and everytime in-between.", rating: 4.2, numRatings: 580, priceRange: "$$$", openAtNoonWeekday: true, datePosted: "Posted 1 day ago" },
+            { job: "Server", company: "Kingston Mines", address: "2548 N Halsted St, Chicago, IL, United States", description: "Night owl server needed for Chicago's legendary blues club. This is a high-energy, fast-paced environment requiring quick thinking and excellent multi-tasking abilities. Experience in a bar or live music venue is a plus. Must be comfortable working late nights and handling a high volume of customers. Great tips!", rating: 4.6, numRatings: 1200, priceRange: "$$", openAtNoonWeekday: false, datePosted: "Posted 1 day ago" },
+            { job: "Server", company: "Longman & Eagle", address: "2657 N Kedzie Ave, Chicago, IL", description: "Award-winning restaurant seeking an experienced server with a strong background in fine dining and craft beverages. Candidates should possess extensive menu knowledge, impeccable service standards, and a genuine passion for hospitality. Sommelier certification is a bonus. We pride ourselves on a unique culinary experience and a strong team.", rating: 4.7, numRatings: 750, priceRange: "$$$$", openAtNoonWeekday: true, datePosted: "Posted 1 day ago" },
+            { job: "Cocktail Server", company: "Vela Bar Cocina", address: "Chicago, IL", description: "Energetic and charismatic cocktail server for a vibrant bar and cocina. Must be 21+ and have experience serving cocktails in a busy setting. Responsibilities include taking drink orders, delivering beverages, and maintaining a clean and inviting bar area. Opportunities for creative input on new drink menus.", rating: 4.3, numRatings: 210, priceRange: "$$$", openAtNoonWeekday: false, datePosted: "Posted 1 day ago" },
+            { job: "Server", company: "Little Wok", address: "1950 W Division St, Chicago, IL 60622, United States", description: "Part-time server for a popular Asian eatery. We are looking for a reliable individual with flexible hours who can provide friendly and efficient service to our diverse clientele. Experience with Asian cuisine is a plus but not required. Join a close-knit team in a casual, fast-paced environment.", rating: 4.0, numRatings: 180, priceRange: "$", openAtNoonWeekday: true, datePosted: "Posted 2 days ago" },
+            { job: "Server", company: "3rd Coast Cafe & Wine Bar", address: "1260 N Dearborn St, Chicago, IL, United States", description: "Charming cafe and wine bar seeking a server with a passion for hospitality and a good understanding of wine. Responsibilities include serving food and beverages, recommending wine pairings, and creating a welcoming atmosphere for our guests. Ideal for someone who enjoys a relaxed yet sophisticated setting.", rating: 4.4, numRatings: 400, priceRange: "$$$", openAtNoonWeekday: true, datePosted: "Posted 2 days ago" },
+            { job: "Server", company: "Brownstone", address: "3937 N Lincoln Ave, Chicago, IL 60613, United States", description: "Casual American restaurant looking for a reliable and friendly server to join our neighborhood favorite. We value teamwork and a positive attitude. Prior serving experience is preferred, but we are willing to train motivated individuals. Enjoy a steady flow of regulars and a supportive staff.", rating: 4.1, numRatings: 300, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 2 days ago" },
+            { job: "Server", company: "Lark Pizza", address: "3130 North Rockwell Street, Chicago, IL", description: "Pizza restaurant seeking a server to join our fun and dynamic team. If you love pizza and enjoy providing excellent customer service, this is the place for you! Responsibilities include taking orders, serving food, and ensuring a great dining experience for families and friends.", rating: 4.2, numRatings: 250, priceRange: "$", openAtNoonWeekday: true, datePosted: "Posted 2 days ago" },
+            { job: "Server", company: "Chicago Waffles - South Loop", address: "1400 S Michigan Ave, Chicago, IL 60605, USA", description: "Breakfast and lunch server for a busy waffle house in the South Loop. Early mornings and weekend availability are required. Must be able to handle high volume and provide quick, friendly service to our hungry customers. A great spot for early risers!", rating: 4.3, numRatings: 600, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 3 days ago" },
+            { job: "Server", company: "Chicago Waffles - Lincoln Square", address: "4768 North Lincoln Avenue, Chicago, IL", description: "Join our Lincoln Square team! Server position open for a popular brunch spot. We are looking for an energetic individual who enjoys a bustling environment and can provide memorable breakfast and lunch experiences. Become part of a local favorite.", rating: 4.4, numRatings: 550, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 3 days ago" },
+            { job: "Server", company: "Zarella Pizzeria & Taverna", address: "531 N Wells St, Chicago, IL 60654", description: "New pizzeria and taverna hiring servers. This is a great opportunity for growth in a new establishment. We seek individuals with a strong work ethic and a desire to contribute to a positive team atmosphere. Be part of building a new culinary destination.", rating: 4.1, numRatings: 150, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 5 days ago" },
+            { job: "Server", company: "Trino", address: "738 West Randolph Street, Chicago, IL", description: "Upscale restaurant seeking a professional and attentive server for our fine dining establishment. Candidates should have extensive knowledge of food and wine, impeccable service etiquette, and a commitment to guest satisfaction. Experience with high-profile clientele is a plus.", rating: 4.6, numRatings: 380, priceRange: "$$$$", openAtNoonWeekday: true, datePosted: "Posted 6 days ago" },
+            { job: "Server", company: "Moody Tongue Brewing Company", address: "2515 South Wabash Avenue, Chicago, IL", description: "Server for a unique brewing company with a sophisticated tasting room. Craft beer knowledge is a significant plus. Responsibilities include guiding guests through our beer selections and serving food pairings. Ideal for those passionate about brewing and gourmet experiences.", rating: 4.5, numRatings: 290, priceRange: "$$$", openAtNoonWeekday: false, datePosted: "Posted 6 days ago" },
+            { job: "Server", company: "Mercadito", address: "108 West Kinzie Street, Chicago, IL, United States", description: "Vibrant Mexican restaurant seeking a server with a positive attitude and a passion for Latin cuisine. Must be able to work in a lively environment and provide excellent service to large parties. Experience with a high-volume, energetic crowd is preferred.", rating: 4.3, numRatings: 480, priceRange: "$$$", openAtNoonWeekday: true, datePosted: "Posted 8 days ago" },
+            { job: "Server", company: "Galit", address: "2429 North Lincoln Avenue, Chicago, IL", description: "Michelin-starred Middle Eastern restaurant looking for experienced servers. Candidates should have a refined sense of hospitality, attention to detail, and a deep appreciation for culinary excellence. Prior experience in a similar setting is essential. Join a team dedicated to exceptional dining.", rating: 4.8, numRatings: 620, priceRange: "$$$$", openAtNoonWeekday: true, datePosted: "Posted 8 days ago" },
+            { job: "Front of House and Dishwasher", company: "Offset BBQ", address: "1720 N California Ave, Chicago, IL 60647, United States", description: "Offset BBQ is seeking a Front of House and Dishwasher to join our team. Responsibilities include customer service, taking orders, cleaning, and dishwashing. Must be reliable and a team player.", rating: 4.0, numRatings: 50, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 9 days ago" },
+            { job: "Front of House Staff", company: "All Together Now", address: "2119 W Chicago Ave, Chicago, IL 60622, United States", description: "All Together Now is looking for friendly and efficient Front of House Staff. Duties include greeting customers, taking orders, serving food and beverages, and maintaining a clean dining area. Experience preferred.", rating: 4.3, numRatings: 120, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 9 days ago" },
+            { job: "Server", company: "The Peninsula Chicago", address: "108 E Superior St, Chicago, IL 60611", description: "The Peninsula Chicago is seeking a highly professional and experienced Server for its fine dining establishment. Candidates must have extensive knowledge of food and wine, impeccable service standards, and a commitment to guest satisfaction.", rating: 4.9, numRatings: 1500, priceRange: "$$$$", openAtNoonWeekday: true, datePosted: "Posted 9 days ago" },
+            { job: "Server", company: "I|O Godfrey", address: "127 West Huron Street, Chicago, IL", description: "I|O Godfrey, a rooftop lounge, is looking for an energetic and experienced Server. Must be comfortable in a fast-paced, high-volume environment and possess excellent customer service skills. Evening and weekend availability required.", rating: 4.7, numRatings: 800, priceRange: "$$$$", openAtNoonWeekday: false, datePosted: "Posted 9 days ago" },
+            { job: "Server", company: "Coda Di Volpe", address: "3335 N Southport Ave, Chicago, IL", description: "Coda Di Volpe, an authentic Italian restaurant, is seeking a Server. Ideal candidates will have a passion for Italian cuisine, strong communication skills, and the ability to provide exceptional dining experiences.", rating: 4.5, numRatings: 400, priceRange: "$$$", openAtNoonWeekday: true, datePosted: "Posted 10 days ago" },
+            { job: "Server", company: "Hatty's Club & Cafe", address: "7100 Lyndon Street, Rosemont, IL", description: "Hatty's Club & Cafe is looking for a friendly and efficient Server. Responsibilities include taking orders, serving food and beverages, and ensuring guest satisfaction. Must be a team player with a positive attitude.", rating: 3.8, numRatings: 70, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 12 days ago" },
+            { job: "Server", company: "Jackman & Co.", address: "1749 Glenview Road, Glenview, IL", description: "Jackman & Co. is seeking a dedicated Server to join our team. We offer a warm and welcoming environment. Candidates should have prior serving experience and excellent customer service skills.", rating: 4.2, numRatings: 100, priceRange: "$$$", openAtNoonWeekday: true, datePosted: "Posted 12 days ago" },
+            { job: "Server", company: "SPACE 519 |The Lunchroom - Wilmette", address: "1515 Sheridan Rd, Wilmette, IL 60091", description: "SPACE 519 | The Lunchroom is hiring a Server for its Wilmette location. Responsibilities include serving meals, maintaining cleanliness, and providing excellent customer service in a casual cafe setting.", rating: 4.1, numRatings: 90, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 12 days ago" },
+            { job: "Server", company: "Figo Wine Bar", address: "3207 North Sheffield Avenue, Chicago, IL", description: "Figo Wine Bar is seeking an experienced Server with a strong understanding of wine and spirits. Candidates should have excellent communication skills and a passion for providing a sophisticated dining experience.", rating: 4.6, numRatings: 300, priceRange: "$$$$", openAtNoonWeekday: false, datePosted: "Posted 13 days ago" },
+            { job: "Front of House Staff", company: "The Western Bar & Kitchen", address: "4301 North Western Avenue, Chicago, IL", description: "The Western Bar & Kitchen is looking for energetic Front of House Staff. Duties include greeting guests, seating, taking orders, and assisting servers. Fast-paced environment, evening and weekend availability required.", rating: 4.0, numRatings: 180, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 13 days ago" },
+            { job: "Server (Hourly)", company: "Aviary", address: "955 West Fulton Market, Chicago, IL, United States", description: "Aviary is seeking an hourly Server for its unique cocktail lounge. Candidates should have extensive knowledge of cocktails, impeccable service standards, and the ability to thrive in a high-end, fast-paced environment.", rating: 4.8, numRatings: 500, priceRange: "$$$$", openAtNoonWeekday: false, datePosted: "Posted 14 days ago" },
+            { job: "Front of House Staff", company: "ILA's Chicago", address: "15 West Hubbard Street, Chicago, IL", description: "ILA's Chicago is hiring Front of House Staff. Responsibilities include customer service, taking orders, and maintaining a clean and inviting atmosphere. Experience in a casual dining setting preferred.", rating: 4.1, numRatings: 110, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 14 days ago" },
+            { job: "Server", company: "Acanto", address: "18 S Michigan Ave, Chicago, IL 60603, United States", description: "Acanto, an Italian restaurant, is looking for a Server. Candidates should have a strong background in fine dining, excellent menu knowledge, and a commitment to providing exceptional service.", rating: 4.7, numRatings: 600, priceRange: "$$$$", openAtNoonWeekday: true, datePosted: "Posted 14 days ago" },
+            { job: "Server", company: "Publican Quality Meats Restaurant", address: "825 West Fulton Market, Chicago, IL, United States", description: "Publican Quality Meats Restaurant is seeking a Server. We are looking for individuals with a passion for food, strong communication skills, and the ability to work in a dynamic, team-oriented environment.", rating: 4.4, numRatings: 350, priceRange: "$$$", openAtNoonWeekday: true, datePosted: "Posted 14 days ago" },
+            { job: "Front of House Staff", company: "Hiro Izakaya", address: "Chicago, IL", description: "Hiro Izakaya is hiring Front of House Staff. Duties include greeting customers, taking orders, and assisting with food and beverage service. Experience in Japanese cuisine or a similar environment is a plus.", rating: 4.0, numRatings: 75, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 14 days ago" },
+            { job: "Server", company: "The Lawn at Wilmette Golf Club", address: "3900 Fairway Drive, Wilmette, IL", description: "The Lawn at Wilmette Golf Club is looking for a Server for its outdoor dining area. Responsibilities include serving food and beverages to club members and guests. Seasonal position, requires weekend availability.", rating: 3.9, numRatings: 40, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 15 days ago" },
+            { job: "Server", company: "Mather Place", address: "2801 Old Glenview Rd, Wilmette, IL 60091", description: "Mather Place, a senior living community, is seeking a Server for its dining services. Responsibilities include serving meals to residents in a respectful and friendly manner. Experience in a similar setting is a plus.", rating: 4.3, numRatings: 60, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 15 days ago" },
+            { job: "Server", company: "The Vig West Loop", address: "312 N Carpenter St, Chicago, IL 60607, United States", description: "The Vig West Loop is looking for an enthusiastic Server to join its vibrant team. Must be able to work in a fast-paced environment, provide excellent customer service, and handle high volume.", rating: 4.2, numRatings: 200, priceRange: "$$$", openAtNoonWeekday: false, datePosted: "Posted 15 days ago" },
+            { job: "Banquet Server (On Call)", company: "East Bank Club", address: "Chicago,IL", description: "On-call banquet server for a premier health and fitness club. Responsibilities include setting up and serving at various events, from corporate gatherings to private parties. Flexibility and a professional demeanor are key. Excellent opportunity for supplemental income.", rating: 4.0, numRatings: 90, priceRange: "$$$", openAtNoonWeekday: true, datePosted: "Posted 21 days ago" },
+            { job: "Server", company: "Marriott", address: "Chicago,IL", description: "Hotel server position available at a downtown Marriott location. This role involves serving guests in our hotel restaurant, room service, and potentially banquets. Professionalism and a commitment to guest satisfaction are paramount. Work in a dynamic hospitality environment.", rating: 4.2, numRatings: 700, priceRange: "$$$", openAtNoonWeekday: true, datePosted: "Posted 23 days ago" },
+            { job: "Server", company: "La Grande Boucherie - Chicago", address: "431 North Dearborn Street, Chicago, IL 60654", description: "French brasserie seeking a server with a passion for classic cuisine and an elegant service style. Knowledge of French culinary terms and wine is highly desirable. Join our team and transport guests to the heart of Paris with impeccable service.", rating: 4.5, numRatings: 450, priceRange: "$$$$", openAtNoonWeekday: true, datePosted: "Posted 26 days ago" },
+            { job: "Banquet Server", company: "Julia Valler Event Staffing - Chicago", address: "Chicago, IL", description: "Event staffing company hiring banquet servers for various events across Chicago. We are looking for reliable, professional, and experienced individuals who can adapt to different event settings and client needs. Great for those seeking flexible work.", rating: 4.0, numRatings: 120, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 29 days ago" },
+            { job: "Server", company: "Thattu", address: "2601 W Fletcher St, Chicago, IL 60618, United States", "description": "South Indian restaurant seeking a server to provide excellent customer service and introduce guests to our unique flavors. Experience with Indian cuisine is a plus, but a willingness to learn and a friendly attitude are most important. Be part of a growing culinary scene.", rating: 4.6, numRatings: 190, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 30 days ago" },
+            { job: "Server", company: "Grill 21", address: "208 South LaSalle Street, Chicago, IL", description: "Steakhouse and grill looking for a server with strong communication skills and a passion for delivering a premium dining experience. Knowledge of cuts of meat and wine pairings will be beneficial. Work in a sophisticated downtown setting.", rating: 4.4, numRatings: 310, priceRange: "$$$$", openAtNoonWeekday: true, datePosted: "Posted 31 days ago" },
+            { job: "Server", company: "The Drifter", address: "676 North Orleans Street, Chicago, IL 60654, United States", description: "Unique speakeasy bar seeking a server for evening shifts. This role requires a flair for storytelling, excellent cocktail knowledge, and the ability to create an immersive experience for our patrons. Join a team that values creativity and exceptional service.", rating: 4.7, numRatings: 270, priceRange: "$$$", openAtNoonWeekday: false, datePosted: "Posted 32 days ago" },
+            { job: "Lounge Server", company: "The Pearl Club Chicago", address: "495 North Milwaukee Avenue, Chicago, IL", description: "Exclusive lounge seeking a professional and discreet lounge server to cater to our discerning clientele. Experience in high-end establishments and a commitment to privacy and exceptional service are required. This is a role for those who excel in a refined environment.", rating: 4.8, numRatings: 110, priceRange: "$$$$", openAtNoonWeekday: false, datePosted: "Posted 33 days ago" },
+            { job: "Server", company: "The Green Door Tavern", address: "678 N Orleans St, Chicago, IL, United States", description: "Historic tavern seeking a server to join our friendly team. If you enjoy a lively atmosphere and serving classic American fare, this is the perfect fit. Experience in a high-volume pub environment is a plus. Become part of Chicago's rich history.", rating: 4.3, numRatings: 500, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 34 days ago" },
+            { job: "Server", company: "DeNucci's - Highland Park", address: "1850 2nd Street unit 110, Highland Park, IL", description: "Italian restaurant in Highland Park looking for a dedicated server. We offer a warm, family-friendly atmosphere and seek individuals who can provide attentive and personalized service to our guests. A great opportunity in a charming suburban setting.", rating: 4.1, numRatings: 160, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 35 days ago" },
+            { job: "Barista/FOH", company: "Hewn - Evanston", address: "1733 Central St, Evanston, IL 60201", description: "Artisan bakery and cafe seeking a passionate barista and front-of-house staff. Must have excellent coffee-making skills, a friendly demeanor, and be able to handle transactions and customer inquiries efficiently. Join a team dedicated to quality baked goods and coffee.", rating: 4.5, numRatings: 800, priceRange: "$", openAtNoonWeekday: true, datePosted: "Posted 36 days ago" },
+            { job: "Front Server", company: "Chicago Chop House", address: "60 W Ontario St, Chicago, IL 60654", description: "High-end steakhouse seeking a polished and experienced front server. Responsibilities include assisting the main server, clearing tables, refilling water, and ensuring the dining room runs smoothly. Attention to detail is crucial for this prestigious establishment.", rating: 4.7, numRatings: 900, priceRange: "$$$$", openAtNoonWeekday: true, datePosted: "Posted 37 days ago" },
+            { job: "Server", company: "Monster Ramen", address: "3435 W Fullerton Ave, Chicago, IL 60647, United States", description: "Ramen shop looking for a server to handle orders, deliver delicious ramen, and provide excellent customer service. A love for Japanese cuisine and a fast-paced work ethic are ideal. Join a popular spot known for authentic flavors.", rating: 4.2, numRatings: 220, priceRange: "$", openAtNoonWeekday: true, datePosted: "Posted 38 days ago" },
+            { job: "Server", company: "The Table at Crate", address: "Oak Brook, IL", description: "Restaurant within Crate & Barrel seeking a server for a unique dining experience. This role combines retail and hospitality, requiring a blend of customer service skills and an appreciation for home goods. A distinctive environment for a server.", rating: 4.3, numRatings: 280, priceRange: "$$$", openAtNoonWeekday: true, datePosted: "Posted 39 days ago" },
+            { job: "Server", company: "Valhalla", address: "2020 W Division St, Chicago, IL 60622", description: "Modern American restaurant seeking a server for a dynamic environment. We are looking for individuals who are energetic, adaptable, and committed to providing a memorable dining experience. Be part of a contemporary culinary team.", rating: 4.0, numRatings: 140, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 40 days ago" },
+            { job: "Server", company: "Chicago Athletic Association", address: "12 S Michigan Ave, Chicago, IL 60603", description: "Historic hotel seeking a server for its various dining outlets, including a rooftop bar and a classic tavern. This role requires versatility and the ability to provide high-quality service in different settings. A grand setting for a hospitality professional.", rating: 4.6, numRatings: 1100, priceRange: "$$$$", openAtNoonWeekday: true, datePosted: "Posted 41 days ago" }
         ];
 
         let map;
@@ -165,9 +210,12 @@
         let directionsService;
         let currentInfoWindow = null;
         let userLocation = null;
+        let userLocationMarker = null; // To store the user's location marker (real or fallback)
         let geolocationMessageDiv;
         let distanceCircles = []; // Array to store the distance circles
         let ringTimeMarkers = []; // Array to store markers for walking times on rings
+        let watchId = null; // To store the watchPosition ID
+        let jobMarkers = []; // Array to store job markers for clearing/re-rendering
 
         /**
          * Displays a message in the geolocation message div.
@@ -215,7 +263,7 @@
             const fillAlphaIncrement = (maxFillAlpha - baseFillAlpha) / numRings;
 
             const baseStrokeAlpha = 0.1; // Starting transparency for stroke (lighter grey)
-            const maxStrokeAlpha = 0.8;  // Ending transparency for stroke (black)
+            const maxStrokeAlpha = 1.0;  // Ending transparency for stroke (black)
             const strokeAlphaIncrement = (maxStrokeAlpha - baseStrokeAlpha) / numRings;
 
             for (let i = 1; i <= numRings; i++) {
@@ -227,11 +275,11 @@
                 const strokeColor = `rgba(0, 0, 0, ${currentStrokeAlpha})`; // Black color with increasing opacity
 
                 const circle = new google.maps.Circle({
-                    strokeColor: strokeColor,
+                    strokeColor: strokeColor, // Dynamic stroke color (grey to black)
                     strokeOpacity: 0.8,
                     strokeWeight: 1,
                     fillColor: fillColor,
-                    fillOpacity: currentFillAlpha,
+                    fillOpacity: currentFillAlpha, // Dynamic fill opacity
                     map: map,
                     center: center,
                     radius: currentRadius
@@ -252,7 +300,6 @@
 
                 for (const direction in headings) {
                     const heading = headings[direction];
-                    // computeOffset returns LatLng, convert to LatLngLiteral for consistency if needed
                     const point = google.maps.geometry.spherical.computeOffset(
                         new google.maps.LatLng(center.lat, center.lng),
                         currentRadius,
@@ -269,15 +316,11 @@
                             strokeOpacity: 0
                         },
                         label: {
-                            text: `${walkingTimeMinutes} min`,
+                            text: `${walkingTimeMinutes}`, // Removed 'min'
                             color: 'black', // Label color
                             fontSize: '10px',
                             fontWeight: 'bold',
-                            // Offset label slightly to avoid overlapping the ring line exactly
-                            // Adjust these values for optimal placement relative to the invisible circle icon
-                            // For N/S, adjust y; for E/W, adjust x.
-                            // This is a rough adjustment, fine-tuning might be needed.
-                            className: 'distance-label' // Add a class for potential custom styling if needed
+                            className: 'distance-label'
                         }
                     });
                     ringTimeMarkers.push(timeMarker);
@@ -290,7 +333,9 @@
          * This function is called by the Google Maps API script once it's loaded.
          */
         function initMap() {
+            consoleOutputDiv = document.getElementById('console-output'); // Assign the console output div
             geolocationMessageDiv = document.getElementById('geolocation-message');
+            const centerMapButton = document.getElementById('center-map-button');
 
             // Initialize the map centered around Chicago
             map = new google.maps.Map(document.getElementById("map"), {
@@ -303,39 +348,56 @@
             geocoder = new google.maps.Geocoder();
             directionsService = new google.maps.DirectionsService();
 
-            // Try to get user's current location
+            // Event listener for the "Center Map on My Location" button
+            centerMapButton.addEventListener('click', () => {
+                if (userLocation) {
+                    map.setCenter(userLocation);
+                    map.setZoom(14); // Optional: zoom in a bit when centering on user
+                } else {
+                    displayGeolocationMessage("Your location is not available to center the map.", "warning");
+                }
+            });
+
+            // Try to get user's current location using watchPosition
             if (navigator.geolocation) {
                 displayGeolocationMessage("Attempting to get your location...", "warning");
-                navigator.geolocation.getCurrentPosition(
+                watchId = navigator.geolocation.watchPosition(
                     (position) => {
                         hideGeolocationMessage(); // Hide message on success
                         userLocation = {
                             lat: position.coords.latitude,
                             lng: position.coords.longitude,
                         };
-                        // Add marker for user's location
-                        new google.maps.Marker({
-                            map: map,
-                            position: userLocation,
-                            title: "Your Location",
-                            icon: {
-                                path: google.maps.SymbolPath.CIRCLE,
-                                scale: 8,
-                                fillColor: '#4285F4', // Google Blue
-                                fillOpacity: 0.8,
-                                strokeWeight: 2,
-                                strokeColor: '#FFFFFF'
-                            },
-                            label: {
-                                text: "You",
-                                color: 'white',
-                                fontSize: '10px',
-                                fontWeight: 'bold'
-                            }
-                        });
-                        map.setCenter(userLocation); // Center map on user's location
-                        drawDistanceRings(userLocation); // Draw rings around user's location
-                        processJobListings(); // Process job listings after getting user location
+
+                        // Create or update user location marker
+                        if (!userLocationMarker) {
+                            userLocationMarker = new google.maps.Marker({
+                                map: map,
+                                position: userLocation,
+                                title: "Your Location",
+                                icon: {
+                                    path: google.maps.SymbolPath.CIRCLE,
+                                    scale: 8,
+                                    fillColor: '#4285F4', // Google Blue
+                                    fillOpacity: 0.8,
+                                    strokeWeight: 2,
+                                    strokeColor: '#FFFFFF'
+                                },
+                                label: {
+                                    text: "You",
+                                    color: 'white',
+                                    fontSize: '10px',
+                                    fontWeight: 'bold'
+                                }
+                            });
+                            map.setCenter(userLocation); // Center map on initial location
+                        } else {
+                            userLocationMarker.setPosition(userLocation); // Just update position
+                        }
+
+                        centerMapButton.disabled = false; // Enable button once location is known
+                        drawDistanceRings(userLocation); // Redraw rings around updated location
+                        processJobListings(); // Process job listings (re-calculate walking times)
                     },
                     (error) => {
                         // Handle geolocation errors
@@ -356,18 +418,20 @@
                         }
                         displayGeolocationMessage(errorMessage, "danger");
                         console.error("Geolocation error:", error);
+                        centerMapButton.disabled = true; // Disable button if location not available
                         // Still process job listings even if user location fails, but walking times will be N/A
                         processJobListings();
                     },
                     {
                         enableHighAccuracy: true, // Request high accuracy
-                        timeout: 10000, // 10 seconds timeout
-                        maximumAge: 0 // Don't use cached position
+                        timeout: 10000, // 10 seconds timeout for each attempt
+                        maximumAge: 60000 // Accept cached position up to 60 seconds old
                     }
                 );
             } else {
                 displayGeolocationMessage("Geolocation is not supported by your browser. Your location cannot be displayed.", "danger");
                 console.warn("Geolocation is not supported by this browser.");
+                centerMapButton.disabled = true; // Disable button if geolocation not supported
                 processJobListings(); // Proceed without user location
             }
 
@@ -384,6 +448,10 @@
          * Processes each job listing, geocodes its address, and adds a marker to the map.
          */
         async function processJobListings() {
+            // Clear existing job markers before re-adding them
+            jobMarkers.forEach(marker => marker.setMap(null));
+            jobMarkers = [];
+
             for (const listing of jobListings) {
                 // Attempt to geocode the address
                 try {
@@ -392,7 +460,8 @@
                     if (response.results && response.results.length > 0) {
                         const location = response.results[0].geometry.location;
                         // Pass the entire listing object and userLocation to the addMarker function
-                        addMarker(location, listing, userLocation);
+                        const marker = await addMarker(location, listing, userLocation);
+                        jobMarkers.push(marker); // Store the marker
                     } else {
                         console.warn(`Could not find location for: ${listing.address}`);
                     }
@@ -403,20 +472,49 @@
         }
 
         /**
+         * Extracts the number of days from a "Posted X days ago" string.
+         * @param {string} dateString - The string like "Posted 1 day ago" or "Posted 15 days ago".
+         * @returns {number|string} The number of days as an integer, or 'N/A' if not found.
+         */
+        function extractDaysAgo(dateString) {
+            const match = dateString.match(/Posted (\d+) days? ago/);
+            if (match && match[1]) {
+                return parseInt(match[1], 10);
+            }
+            return 'N/A';
+        }
+
+        /**
          * Adds a marker to the map at the given location with an info window and a custom label.
          * @param {google.maps.LatLng} location - The latitude and longitude for the marker.
          * @param {object} listing - The full job listing object containing all details.
          * @param {google.maps.LatLngLiteral} userLoc - User's current location for directions.
+         * @returns {google.maps.Marker} The created marker object.
          */
         async function addMarker(location, listing, userLoc) {
             let labelText = '';
+            const daysAgo = extractDaysAgo(listing.datePosted);
+
+            // Construct label text including price range, rating, and days ago posted
             if (listing.priceRange && listing.rating) {
                 labelText = `${listing.priceRange}, ${listing.rating}`;
+                if (daysAgo !== 'N/A') {
+                    labelText += `, ${daysAgo}d`; // Add 'd' for days
+                }
             } else if (listing.priceRange) {
                 labelText = listing.priceRange;
+                if (daysAgo !== 'N/A') {
+                    labelText += `, ${daysAgo}d`;
+                }
             } else if (listing.rating) {
-                labelText = String(listing.rating); // Ensure it's a string
+                labelText = String(listing.rating);
+                if (daysAgo !== 'N/A') {
+                    labelText += `, ${daysAgo}d`;
+                }
+            } else if (daysAgo !== 'N/A') {
+                labelText = `${daysAgo}d`;
             }
+
 
             // Determine marker color based on openAtNoonWeekday property
             const markerColor = listing.openAtNoonWeekday ? '#008000' : '#EA4335'; // Green or Red
@@ -489,7 +587,8 @@
                     <p><strong><em>Company:</em></strong> ${listing.company}</p>
                     <p><strong><em>Address:</em></strong> ${listing.address}</p>
                     <p><strong><em>Rating:</em></strong> ${listing.rating || 'N/A'} (${listing.numRatings || 0} reviews)</p>
-                    <p><strong><em>Price Range:</em></b> ${listing.priceRange || 'N/A'}</p>
+                    <p><strong><em>Price Range:</em></strong> ${listing.priceRange || 'N/A'}</p>
+                    <p><strong><em>Posted:</em></strong> ${listing.datePosted || 'N/A'}</p>
                     <p><strong><em>Walking Time from Your Location:</em></strong> ${walkingTime}</p>
                     ${descriptionContent}
                 </div>
@@ -507,6 +606,7 @@
                 infoWindow.open(map, marker);
                 currentInfoWindow = infoWindow; // Set the newly opened info window as current
             });
+            return marker; // Return the marker object
         }
     </script>
     <!-- Google Maps JavaScript API script -->
