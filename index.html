@@ -397,7 +397,11 @@
 
                         centerMapButton.disabled = false; // Enable button once location is known
                         drawDistanceRings(userLocation); // Redraw rings around updated location
-                        processJobListings(); // Process job listings (re-calculate walking times)
+
+                        // Only process job listings if they haven't been loaded yet
+                        if (jobMarkers.length === 0) {
+                            processJobListings();
+                        }
                     },
                     (error) => {
                         // Handle geolocation errors
@@ -419,8 +423,11 @@
                         displayGeolocationMessage(errorMessage, "danger");
                         console.error("Geolocation error:", error);
                         centerMapButton.disabled = true; // Disable button if location not available
-                        // Still process job listings even if user location fails, but walking times will be N/A
-                        processJobListings();
+
+                        // Process job listings even if user location fails, but only if not already loaded
+                        if (jobMarkers.length === 0) {
+                            processJobListings();
+                        }
                     },
                     {
                         enableHighAccuracy: true, // Request high accuracy
@@ -432,7 +439,8 @@
                 displayGeolocationMessage("Geolocation is not supported by your browser. Your location cannot be displayed.", "danger");
                 console.warn("Geolocation is not supported by this browser.");
                 centerMapButton.disabled = true; // Disable button if geolocation not supported
-                processJobListings(); // Proceed without user location
+                // Process job listings immediately if geolocation is not supported
+                processJobListings();
             }
 
             // Close info window when clicking on the map itself
@@ -448,7 +456,7 @@
          * Processes each job listing, geocodes its address, and adds a marker to the map.
          */
         async function processJobListings() {
-            // Clear existing job markers before re-adding them
+            // Clear any existing job markers before re-adding them (important for initial load)
             jobMarkers.forEach(marker => marker.setMap(null));
             jobMarkers = [];
 
@@ -575,7 +583,7 @@
 
                 descriptionContent = `
                     <p><strong><em>Description:</em></strong> ${mainDescription}</p>
-                    <p><br><strong><em>Expanded Description:</em></strong> ${expandedDescription}</p>
+                    <p><br><strong><em>Expanded Description:</em></b> ${expandedDescription}</p>
                 `;
             } else {
                 descriptionContent = `<p><strong><em>Description:</em></strong> ${listing.description || 'No description available.'}</p>`;
