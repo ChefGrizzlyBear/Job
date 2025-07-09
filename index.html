@@ -241,11 +241,12 @@
 
         /**
          * Draws transparent blue rings around a given center point.
-         * Each ring represents a half-mile increment and gets progressively darker.
+         * This function is now only called once to create the circles and markers.
          * @param {google.maps.LatLngLiteral} center - The center point for the rings (user's location).
          */
         function drawDistanceRings(center) {
-            // Clear any existing circles and time markers from the map
+            // Clear any existing circles and time markers from the map (only needed if redrawing from scratch)
+            // For initial draw, these arrays should be empty.
             distanceCircles.forEach(circle => circle.setMap(null));
             distanceCircles = [];
             ringTimeMarkers.forEach(marker => marker.setMap(null));
@@ -329,6 +330,38 @@
         }
 
         /**
+         * Updates the positions of existing distance rings and their labels.
+         * This function is called on subsequent location updates.
+         * @param {google.maps.LatLngLiteral} newCenter - The new center point for the rings (user's updated location).
+         */
+        function updateDistanceRings(newCenter) {
+            const halfMileInMeters = 804.672; // 0.5 miles in meters
+            const avgWalkingSpeedMph = 3.1; // Average walking speed in miles per hour
+
+            distanceCircles.forEach((circle, i) => {
+                const currentRadius = (i + 1) * halfMileInMeters; // Radius based on index
+                circle.setCenter(newCenter);
+            });
+
+            ringTimeMarkers.forEach((marker, i) => {
+                const ringIndex = Math.floor(i / 4); // Each ring has 4 markers (N, E, S, W)
+                const headingIndex = i % 4; // 0=N, 1=E, 2=S, 3=W
+                const distanceMiles = (ringIndex + 1) * 0.5;
+                const currentRadius = (ringIndex + 1) * halfMileInMeters;
+
+                const headings = [0, 90, 180, 270]; // N, E, S, W
+                const heading = headings[headingIndex];
+
+                const newPoint = google.maps.geometry.spherical.computeOffset(
+                    new google.maps.LatLng(newCenter.lat, newCenter.lng),
+                    currentRadius,
+                    heading
+                );
+                marker.setPosition(newPoint);
+            });
+        }
+
+        /**
          * Initializes the Google Map and geocoder.
          * This function is called by the Google Maps API script once it's loaded.
          */
@@ -391,17 +424,16 @@
                                 }
                             });
                             map.setCenter(userLocation); // Center map on initial location
+                            drawDistanceRings(userLocation); // Draw rings for the first time
                         } else {
                             userLocationMarker.setPosition(userLocation); // Just update position
+                            updateDistanceRings(userLocation); // Update existing rings
                         }
 
                         centerMapButton.disabled = false; // Enable button once location is known
-                        drawDistanceRings(userLocation); // Redraw rings around updated location
 
-                        // Only process job listings if they haven't been loaded yet
-                        if (jobMarkers.length === 0) {
-                            processJobListings();
-                        }
+                        // Always process job listings (to update walking times in info windows)
+                        processJobListings();
                     },
                     (error) => {
                         // Handle geolocation errors
@@ -424,8 +456,8 @@
                         console.error("Geolocation error:", error);
                         centerMapButton.disabled = true; // Disable button if location not available
 
-                        // Process job listings even if user location fails, but only if not already loaded
-                        if (jobMarkers.length === 0) {
+                        // Process job listings even if user location fails, to ensure they are on the map
+                        if (jobMarkers.length === 0) { // Only load jobs if not already loaded
                             processJobListings();
                         }
                     },
@@ -456,26 +488,32 @@
          * Processes each job listing, geocodes its address, and adds a marker to the map.
          */
         async function processJobListings() {
-            // Clear any existing job markers before re-adding them (important for initial load)
-            jobMarkers.forEach(marker => marker.setMap(null));
-            jobMarkers = [];
+            // Only clear and re-add markers if they haven't been loaded yet
+            // This prevents continuous reloading of job markers
+            if (jobMarkers.length === 0) {
+                for (const listing of jobListings) {
+                    // Attempt to geocode the address
+                    try {
+                        const response = await geocoder.geocode({ address: listing.address });
 
-            for (const listing of jobListings) {
-                // Attempt to geocode the address
-                try {
-                    const response = await geocoder.geocode({ address: listing.address });
-
-                    if (response.results && response.results.length > 0) {
-                        const location = response.results[0].geometry.location;
-                        // Pass the entire listing object and userLocation to the addMarker function
-                        const marker = await addMarker(location, listing, userLocation);
-                        jobMarkers.push(marker); // Store the marker
-                    } else {
-                        console.warn(`Could not find location for: ${listing.address}`);
+                        if (response.results && response.results.length > 0) {
+                            const location = response.results[0].geometry.location;
+                            // Pass the entire listing object and userLocation to the addMarker function
+                            const marker = await addMarker(location, listing, userLocation);
+                            jobMarkers.push(marker); // Store the marker
+                        } else {
+                            console.warn(`Could not find location for: ${listing.address}`);
+                        }
+                    } catch (error) {
+                        console.error(`Geocoding error for ${listing.address}:`, error);
                     }
-                } catch (error) {
-                    console.error(`Geocoding error for ${listing.address}:`, error);
                 }
+            } else {
+                // If markers already exist, just update their info windows (especially walking times)
+                // This is a simplified approach; a more robust solution might re-open current info window
+                // or update content without re-opening. For now, we rely on user re-clicking marker.
+                // Or, we could iterate through jobMarkers and update their infoWindow content.
+                // For this example, re-calculating walking times in the info window is sufficient on click.
             }
         }
 
@@ -583,7 +621,7 @@
 
                 descriptionContent = `
                     <p><strong><em>Description:</em></strong> ${mainDescription}</p>
-                    <p><br><strong><em>Expanded Description:</em></b> ${expandedDescription}</p>
+                    <p><br><strong><em>Expanded Description:</em></strong> ${expandedDescription}</p>
                 `;
             } else {
                 descriptionContent = `<p><strong><em>Description:</em></strong> ${listing.description || 'No description available.'}</p>`;
