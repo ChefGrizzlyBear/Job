@@ -99,6 +99,62 @@
             background-color: #a0aec0; /* Grey for disabled */
             cursor: not-allowed;
         }
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            background-color: #f8fafc;
+        }
+        .slider-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .slider-item label {
+            min-width: 120px; /* Align labels */
+            font-weight: bold;
+            color: #4a5568;
+        }
+        .slider-item input[type="range"] {
+            flex-grow: 1;
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #d1d5db;
+            outline: none;
+            opacity: 0.7;
+            -webkit-transition: .2s;
+            transition: opacity .2s;
+            border-radius: 4px;
+        }
+        .slider-item input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4299e1;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .slider-item input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4299e1;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .slider-item span {
+            font-weight: bold;
+            color: #2d3748;
+            min-width: 30px; /* Ensure space for value */
+            text-align: right;
+        }
     </style>
 </head>
 <body class="p-4 bg-gray-100 min-h-screen flex flex-col items-center justify-center">
@@ -107,6 +163,19 @@
 
         <div class="button-group">
             <button id="center-map-button" disabled>Center Map on My Location</button>
+        </div>
+
+        <div class="slider-group">
+            <div class="slider-item">
+                <label for="min-days-ago">Minimum Days Ago:</label>
+                <input type="range" id="min-days-ago" min="0" max="45" value="0">
+                <span id="min-days-ago-value">0</span>
+            </div>
+            <div class="slider-item">
+                <label for="max-days-ago">Maximum Days Ago:</label>
+                <input type="range" id="max-days-ago" min="0" max="45" value="45">
+                <span id="max-days-ago-value">45</span>
+            </div>
         </div>
 
         <div id="map" class="mb-6"></div>
@@ -215,7 +284,24 @@
         let distanceCircles = []; // Array to store the distance circles
         let ringTimeMarkers = []; // Array to store markers for walking times on rings
         let watchId = null; // To store the watchPosition ID
-        let jobMarkers = []; // Array to store job markers for clearing/re-rendering
+        // jobMarkers array is no longer needed as markers are stored directly in jobListings
+        // let jobMarkers = [];
+
+        // Slider elements
+        let minDaysAgoSlider;
+        let maxDaysAgoSlider;
+        let minDaysAgoValueSpan;
+        let maxDaysAgoValueSpan;
+
+        // Debounce function
+        function debounce(func, delay) {
+            let timeout;
+            return function(...args) {
+                const context = this;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(context, args), delay);
+            };
+        }
 
         /**
          * Displays a message in the geolocation message div.
@@ -336,17 +422,14 @@
          */
         function updateDistanceRings(newCenter) {
             const halfMileInMeters = 804.672; // 0.5 miles in meters
-            const avgWalkingSpeedMph = 3.1; // Average walking speed in miles per hour
 
             distanceCircles.forEach((circle, i) => {
-                const currentRadius = (i + 1) * halfMileInMeters; // Radius based on index
                 circle.setCenter(newCenter);
             });
 
             ringTimeMarkers.forEach((marker, i) => {
                 const ringIndex = Math.floor(i / 4); // Each ring has 4 markers (N, E, S, W)
                 const headingIndex = i % 4; // 0=N, 1=E, 2=S, 3=W
-                const distanceMiles = (ringIndex + 1) * 0.5;
                 const currentRadius = (ringIndex + 1) * halfMileInMeters;
 
                 const headings = [0, 90, 180, 270]; // N, E, S, W
@@ -369,6 +452,39 @@
             consoleOutputDiv = document.getElementById('console-output'); // Assign the console output div
             geolocationMessageDiv = document.getElementById('geolocation-message');
             const centerMapButton = document.getElementById('center-map-button');
+
+            // Get slider elements
+            minDaysAgoSlider = document.getElementById('min-days-ago');
+            maxDaysAgoSlider = document.getElementById('max-days-ago');
+            minDaysAgoValueSpan = document.getElementById('min-days-ago-value');
+            maxDaysAgoValueSpan = document.getElementById('max-days-ago-value');
+
+            // Set initial slider values
+            minDaysAgoValueSpan.textContent = minDaysAgoSlider.value;
+            maxDaysAgoValueSpan.textContent = maxDaysAgoSlider.value;
+
+            // Debounced filter function
+            const debouncedFilterJobs = debounce(filterJobsByDaysPosted, 300); // 300ms debounce
+
+            // Add event listeners for sliders
+            minDaysAgoSlider.addEventListener('input', () => {
+                // Ensure min is not greater than max
+                if (parseInt(minDaysAgoSlider.value) > parseInt(maxDaysAgoSlider.value)) {
+                    minDaysAgoSlider.value = maxDaysAgoSlider.value;
+                }
+                minDaysAgoValueSpan.textContent = minDaysAgoSlider.value;
+                debouncedFilterJobs();
+            });
+
+            maxDaysAgoSlider.addEventListener('input', () => {
+                // Ensure max is not less than min
+                if (parseInt(maxDaysAgoSlider.value) < parseInt(minDaysAgoSlider.value)) {
+                    maxDaysAgoSlider.value = minDaysAgoSlider.value;
+                }
+                maxDaysAgoValueSpan.textContent = maxDaysAgoSlider.value;
+                debouncedFilterJobs();
+            });
+
 
             // Initialize the map centered around Chicago
             map = new google.maps.Map(document.getElementById("map"), {
@@ -425,15 +541,17 @@
                             });
                             map.setCenter(userLocation); // Center map on initial location
                             drawDistanceRings(userLocation); // Draw rings for the first time
+                            // Initial processing of job listings after user location is found
+                            processAllJobListingsAndCreateMarkers();
                         } else {
                             userLocationMarker.setPosition(userLocation); // Just update position
                             updateDistanceRings(userLocation); // Update existing rings
+                            // Re-calculate walking times in info windows if one is open
+                            // This would require re-opening the info window or updating its content directly
+                            // For simplicity, we'll rely on the user re-clicking the marker to see updated times.
                         }
 
                         centerMapButton.disabled = false; // Enable button once location is known
-
-                        // Always process job listings (to update walking times in info windows)
-                        processJobListings();
                     },
                     (error) => {
                         // Handle geolocation errors
@@ -456,9 +574,9 @@
                         console.error("Geolocation error:", error);
                         centerMapButton.disabled = true; // Disable button if location not available
 
-                        // Process job listings even if user location fails, to ensure they are on the map
-                        if (jobMarkers.length === 0) { // Only load jobs if not already loaded
-                            processJobListings();
+                        // If geolocation fails, still process job listings using a default map center
+                        if (jobListings[0].marker === undefined) { // Check if markers haven't been created yet
+                            processAllJobListingsAndCreateMarkers();
                         }
                     },
                     {
@@ -472,7 +590,7 @@
                 console.warn("Geolocation is not supported by this browser.");
                 centerMapButton.disabled = true; // Disable button if geolocation not supported
                 // Process job listings immediately if geolocation is not supported
-                processJobListings();
+                processAllJobListingsAndCreateMarkers();
             }
 
             // Close info window when clicking on the map itself
@@ -485,36 +603,28 @@
         }
 
         /**
-         * Processes each job listing, geocodes its address, and adds a marker to the map.
+         * Processes all job listings, geocodes their addresses, and creates markers.
+         * Markers are initially hidden and their visibility is controlled by filterJobsByDaysPosted.
          */
-        async function processJobListings() {
-            // Only clear and re-add markers if they haven't been loaded yet
-            // This prevents continuous reloading of job markers
-            if (jobMarkers.length === 0) {
-                for (const listing of jobListings) {
-                    // Attempt to geocode the address
-                    try {
-                        const response = await geocoder.geocode({ address: listing.address });
+        async function processAllJobListingsAndCreateMarkers() {
+            for (const listing of jobListings) {
+                // Attempt to geocode the address
+                try {
+                    const response = await geocoder.geocode({ address: listing.address });
 
-                        if (response.results && response.results.length > 0) {
-                            const location = response.results[0].geometry.location;
-                            // Pass the entire listing object and userLocation to the addMarker function
-                            const marker = await addMarker(location, listing, userLocation);
-                            jobMarkers.push(marker); // Store the marker
-                        } else {
-                            console.warn(`Could not find location for: ${listing.address}`);
-                        }
-                    } catch (error) {
-                        console.error(`Geocoding error for ${listing.address}:`, error);
+                    if (response.results && response.results.length > 0) {
+                        listing.latLng = response.results[0].geometry.location; // Store LatLng
+                        // Create marker but set map to null initially
+                        listing.marker = createJobMarker(listing, userLocation);
+                    } else {
+                        console.warn(`Could not find location for: ${listing.address}`);
                     }
+                } catch (error) {
+                    console.error(`Geocoding error for ${listing.address}:`, error);
                 }
-            } else {
-                // If markers already exist, just update their info windows (especially walking times)
-                // This is a simplified approach; a more robust solution might re-open current info window
-                // or update content without re-opening. For now, we rely on user re-clicking marker.
-                // Or, we could iterate through jobMarkers and update their infoWindow content.
-                // For this example, re-calculating walking times in the info window is sufficient on click.
             }
+            // After all markers are created (and their latLng stored), apply initial filter
+            filterJobsByDaysPosted();
         }
 
         /**
@@ -531,13 +641,37 @@
         }
 
         /**
-         * Adds a marker to the map at the given location with an info window and a custom label.
-         * @param {google.maps.LatLng} location - The latitude and longitude for the marker.
+         * Filters job listings based on the selected "days ago posted" range
+         * and updates the map markers accordingly.
+         */
+        function filterJobsByDaysPosted() {
+            const minDays = parseInt(minDaysAgoSlider.value, 10);
+            const maxDays = parseInt(maxDaysAgoSlider.value, 10);
+
+            jobListings.forEach(listing => {
+                if (listing.marker) { // Ensure marker exists
+                    const daysAgo = extractDaysAgo(listing.datePosted);
+                    const isVisible = (typeof daysAgo === 'number' && daysAgo >= minDays && daysAgo <= maxDays);
+
+                    listing.marker.setMap(isVisible ? map : null);
+
+                    // If the currently open info window's marker is hidden, close the info window
+                    if (currentInfoWindow && currentInfoWindow.getAnchor() === listing.marker && !isVisible) {
+                        currentInfoWindow.close();
+                        currentInfoWindow = null;
+                    }
+                }
+            });
+        }
+
+        /**
+         * Creates a marker for a job listing with an info window and a custom label.
+         * This function now only *creates* the marker and its info window, it doesn't add it to the map initially.
          * @param {object} listing - The full job listing object containing all details.
          * @param {google.maps.LatLngLiteral} userLoc - User's current location for directions.
          * @returns {google.maps.Marker} The created marker object.
          */
-        async function addMarker(location, listing, userLoc) {
+        function createJobMarker(listing, userLoc) {
             let labelText = '';
             const daysAgo = extractDaysAgo(listing.datePosted);
 
@@ -566,8 +700,8 @@
             const markerColor = listing.openAtNoonWeekday ? '#008000' : '#EA4335'; // Green or Red
 
             const marker = new google.maps.Marker({
-                map: map,
-                position: location,
+                // map: map, // Do NOT set map here initially
+                position: listing.latLng, // Use the pre-geocoded location
                 title: `${listing.job} at ${listing.company}`,
                 icon: {
                     path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW, // Using a pin-like symbol
@@ -587,72 +721,75 @@
                 }
             });
 
-            let walkingTime = 'Calculating...';
-            // Only calculate walking time if user location is available
-            if (userLoc) {
-                try {
-                    const directionsRequest = {
-                        origin: userLoc,
-                        destination: location,
-                        travelMode: google.maps.TravelMode.WALKING
-                    };
-                    const directionsResponse = await directionsService.route(directionsRequest);
-
-                    if (directionsResponse.routes && directionsResponse.routes.length > 0) {
-                        walkingTime = directionsResponse.routes[0].legs[0].duration.text;
-                    } else {
-                        walkingTime = 'N/A (No walking route found)';
-                    }
-                } catch (e) {
-                    console.error("Error calculating directions:", e);
-                    walkingTime = 'N/A (Error calculating route)';
-                }
-            } else {
-                walkingTime = 'N/A (Your location not available)';
-            }
-
-            let descriptionContent = '';
-            const splitKeyword = 'NOW HIRING';
-
-            if (listing.description && listing.description.includes(splitKeyword)) {
-                const parts = listing.description.split(splitKeyword);
-                const mainDescription = parts[0].trim();
-                const expandedDescription = splitKeyword + parts.slice(1).join(splitKeyword).trim();
-
-                descriptionContent = `
-                    <p><strong><em>Description:</em></strong> ${mainDescription}</p>
-                    <p><br><strong><em>Expanded Description:</em></strong> ${expandedDescription}</p>
-                `;
-            } else {
-                descriptionContent = `<p><strong><em>Description:</em></strong> ${listing.description || 'No description available.'}</p>`;
-            }
-
-            const infoWindowContent = `
-                <div class="info-window-content">
-                    <h3>${listing.job}</h3>
-                    <p><strong><em>Company:</em></strong> ${listing.company}</p>
-                    <p><strong><em>Address:</em></strong> ${listing.address}</p>
-                    <p><strong><em>Rating:</em></strong> ${listing.rating || 'N/A'} (${listing.numRatings || 0} reviews)</p>
-                    <p><strong><em>Price Range:</em></strong> ${listing.priceRange || 'N/A'}</p>
-                    <p><strong><em>Posted:</em></strong> ${listing.datePosted || 'N/A'}</p>
-                    <p><strong><em>Walking Time from Your Location:</em></strong> ${walkingTime}</p>
-                    ${descriptionContent}
-                </div>
-            `;
-
-            const infoWindow = new google.maps.InfoWindow({
-                content: infoWindowContent,
-            });
-
-            marker.addListener("click", () => {
+            // The walking time calculation is only done when the info window is opened
+            // to avoid calculating for all markers upfront, which would be slow.
+            marker.addListener("click", async () => {
                 // Close any currently open info window
                 if (currentInfoWindow) {
                     currentInfoWindow.close();
                 }
+
+                let walkingTime = 'Calculating...';
+                // Only calculate walking time if user location is available
+                if (userLoc) {
+                    try {
+                        const directionsRequest = {
+                            origin: userLoc,
+                            destination: listing.latLng, // Use stored LatLng
+                            travelMode: google.maps.TravelMode.WALKING
+                        };
+                        const directionsResponse = await directionsService.route(directionsRequest);
+
+                        if (directionsResponse.routes && directionsResponse.routes.length > 0) {
+                            walkingTime = directionsResponse.routes[0].legs[0].duration.text;
+                        } else {
+                            walkingTime = 'N/A (No walking route found)';
+                        }
+                    } catch (e) {
+                        console.error("Error calculating directions:", e);
+                        walkingTime = 'N/A (Error calculating route)';
+                    }
+                } else {
+                    walkingTime = 'N/A (Your location not available)';
+                }
+
+                let descriptionContent = '';
+                const splitKeyword = 'NOW HIRING';
+
+                if (listing.description && listing.description.includes(splitKeyword)) {
+                    const parts = listing.description.split(splitKeyword);
+                    const mainDescription = parts[0].trim();
+                    const expandedDescription = splitKeyword + parts.slice(1).join(splitKeyword).trim();
+
+                    descriptionContent = `
+                        <p><strong><em>Description:</em></strong> ${mainDescription}</p>
+                        <p><br><strong><em>Expanded Description:</em></strong> ${expandedDescription}</p>
+                    `;
+                } else {
+                    descriptionContent = `<p><strong><em>Description:</em></strong> ${listing.description || 'No description available.'}</p>`;
+                }
+
+                const infoWindowContent = `
+                    <div class="info-window-content">
+                        <h3>${listing.job}</h3>
+                        <p><strong><em>Company:</em></strong> ${listing.company}</p>
+                        <p><strong><em>Address:</em></strong> ${listing.address}</p>
+                        <p><strong><em>Rating:</em></strong> ${listing.rating || 'N/A'} (${listing.numRatings || 0} reviews)</p>
+                        <p><strong><em>Price Range:</em></strong> ${listing.priceRange || 'N/A'}</p>
+                        <p><strong><em>Posted:</em></strong> ${listing.datePosted || 'N/A'}</p>
+                        <p><strong><em>Walking Time from Your Location:</em></strong> ${walkingTime}</p>
+                        ${descriptionContent}
+                    </div>
+                `;
+
+                const infoWindow = new google.maps.InfoWindow({
+                    content: infoWindowContent,
+                });
+
                 infoWindow.open(map, marker);
                 currentInfoWindow = infoWindow; // Set the newly opened info window as current
             });
-            return marker; // Return the marker object
+            return marker; // Return the created marker object
         }
     </script>
     <!-- Google Maps JavaScript API script -->
