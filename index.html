@@ -1,798 +1,583 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
+    <title>Job Locations Map</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Job Listings Map</title>
-    <!-- Tailwind CSS CDN for basic styling -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Custom styles for the map container */
-        #map {
-            height: 80vh; /* Set a height for the map */
-            width: 100%; /* Full width */
-            border-radius: 0.5rem; /* Rounded corners */
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
-        }
+        /* Apply Inter font to the entire body */
         body {
-            font-family: "Inter", sans-serif; /* Use Inter font */
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
             background-color: #f3f4f6; /* Light gray background */
         }
-        /* Style for the info window content */
-        .info-window-content {
-            padding: 0.5rem;
-            font-size: 0.875rem;
-            color: #333;
-            max-width: 250px; /* Limit info window width for better readability */
+        /* Style for the map container */
+        #map {
+            height: 70vh; /* Make map take 70% of viewport height */
+            width: 90%; /* Make map take 90% of viewport width */
+            margin: 2rem auto; /* Center the map with margin */
+            border-radius: 0.75rem; /* Rounded corners */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* Subtle shadow */
+            background-color: #e5e7eb; /* Placeholder background for map area */
         }
-        .info-window-content h3 {
-            font-weight: bold;
-            margin-bottom: 0.25rem;
+        /* Style for the header */
+        .header {
+            background-color: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 1.5rem;
+            text-align: center;
+            border-radius: 0.75rem;
+            margin: 1rem 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        /* Style for info window content */
+        .info-window-content {
+            font-size: 0.9rem;
+            color: #374151;
+        }
+        .info-window-content strong {
             color: #1f2937;
         }
         .info-window-content p {
-            margin-bottom: 0.25rem; /* Add some spacing between paragraphs */
+            margin-top: 0.5rem;
+            line-height: 1.4;
         }
-        .info-window-content strong {
-            color: #4b5563;
-        }
-        /* Styles for the alert message */
-        .alert {
-            padding: 1rem;
-            border-radius: 0.5rem;
-            margin-top: 1rem;
-            font-size: 0.9rem;
-            text-align: center;
-        }
-        .alert-warning {
-            background-color: #fff3cd;
-            color: #664d03;
-            border: 1px solid #ffecb5;
-        }
-        .alert-danger {
-            background-color: #f8d7da;
-            color: #842029;
-            border: 1px solid #f5c2c7;
-        }
-        /* Styles for the console output div */
-        #console-output {
-            background-color: #1e1e1e;
-            color: #00ff00; /* Green text for console */
-            font-family: 'Consolas', 'Monaco', 'Lucida Console', monospace;
+        .info-window-content .meta-info {
             font-size: 0.85rem;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+        }
+        /* Console styling */
+        #console-output {
+            background-color: #1f2937; /* Dark background */
+            color: #e5e7eb; /* Light text */
             padding: 1rem;
-            margin-top: 1rem;
-            border-radius: 0.5rem;
-            max-height: 200px; /* Limit height */
-            overflow-y: auto; /* Enable scrolling */
-            width: 100%;
-            box-sizing: border-box; /* Include padding in width */
+            margin: 1rem 2rem;
+            border-radius: 0.75rem;
+            font-family: 'Consolas', 'Monaco', 'Lucida Console', monospace;
+            font-size: 0.8rem;
+            height: 150px; /* Fixed height */
+            overflow-y: scroll; /* Scrollable */
             white-space: pre-wrap; /* Preserve whitespace and wrap text */
-            word-break: break-all; /* Break long words */
-            border: 1px solid #333;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
-        #console-output .error {
-            color: #ff4500; /* Orange-red for errors */
-        }
-        #console-output .warning {
-            color: #ffd700; /* Gold for warnings */
-        }
-        .button-group {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 1rem;
-        }
-        .button-group button {
-            padding: 0.75rem 1.5rem;
-            background-color: #4299e1; /* Blue color */
-            color: white;
-            border-radius: 0.5rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            border: none;
-        }
-        .button-group button:hover {
-            background-color: #3182ce; /* Darker blue on hover */
-        }
-        .button-group button:disabled {
-            background-color: #a0aec0; /* Grey for disabled */
-            cursor: not-allowed;
-        }
-        .slider-group {
+        .console-log { color: #e5e7eb; }
+        .console-warn { color: #fcd34d; } /* Yellow */
+        .console-error { color: #ef4444; } /* Red */
+
+        /* Slider container styling */
+        .slider-container {
+            background-color: #ffffff;
+            padding: 1.5rem;
+            margin: 1rem 2rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             display: flex;
             flex-direction: column;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-            padding: 0.5rem;
-            border: 1px solid #e2e8f0;
-            border-radius: 0.5rem;
-            background-color: #f8fafc;
-        }
-        .slider-item {
-            display: flex;
             align-items: center;
-            gap: 0.5rem;
         }
-        .slider-item label {
-            min-width: 120px; /* Align labels */
-            font-weight: bold;
-            color: #4a5568;
-        }
-        .slider-item input[type="range"] {
-            flex-grow: 1;
-            -webkit-appearance: none;
+        .slider-group {
             width: 100%;
+            max-width: 400px; /* Limit slider width */
+            margin-top: 1rem;
+        }
+        .slider-group label {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        .slider-group input[type="range"] {
+            width: 100%;
+            -webkit-appearance: none; /* Override default look */
+            appearance: none;
             height: 8px;
-            background: #d1d5db;
+            background: #d1d5db; /* Light gray track */
             outline: none;
             opacity: 0.7;
             -webkit-transition: .2s;
             transition: opacity .2s;
-            border-radius: 4px;
+            border-radius: 5px;
         }
-        .slider-item input[type="range"]::-webkit-slider-thumb {
+        .slider-group input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
             width: 20px;
             height: 20px;
-            border-radius: 50%;
-            background: #4299e1;
+            background: #2563eb; /* Blue thumb */
             cursor: pointer;
+            border-radius: 50%;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
-        .slider-item input[type="range"]::-moz-range-thumb {
+        .slider-group input[type="range"]::-moz-range-thumb {
             width: 20px;
             height: 20px;
-            border-radius: 50%;
-            background: #4299e1;
+            background: #2563eb; /* Blue thumb */
             cursor: pointer;
+            border-radius: 50%;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
-        .slider-item span {
-            font-weight: bold;
-            color: #2d3748;
-            min-width: 30px; /* Ensure space for value */
-            text-align: right;
+        .slider-values {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 400px;
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: #4b5563;
         }
     </style>
 </head>
-<body class="p-4 bg-gray-100 min-h-screen flex flex-col items-center justify-center">
-    <div class="container mx-auto p-6 bg-white rounded-lg shadow-xl max-w-4xl">
-        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Job Locations on Map</h1>
+<body class="bg-gray-100">
+    <div class="header">
+        <h1 class="text-3xl font-bold text-gray-800">Chicago Job Locations</h1>
+        <p class="text-gray-600 mt-2">Explore job opportunities on the map!</p>
+    </div>
 
-        <div class="button-group">
-            <button id="center-map-button" disabled>Center Map on My Location</button>
-        </div>
-
+    <div class="slider-container">
+        <h2 class="text-xl font-semibold text-gray-700 mb-4">Filter by Days Posted</h2>
         <div class="slider-group">
-            <div class="slider-item">
-                <label for="min-days-ago">Minimum Days Ago:</label>
-                <input type="range" id="min-days-ago" min="0" max="45" value="0">
-                <span id="min-days-ago-value">0</span>
-            </div>
-            <div class="slider-item">
-                <label for="max-days-ago">Maximum Days Ago:</label>
-                <input type="range" id="max-days-ago" min="0" max="45" value="45">
-                <span id="max-days-ago-value">45</span>
+            <label for="minDays">Minimum Days Ago:</label>
+            <input type="range" id="minDays" min="0" max="30" value="0">
+            <div class="slider-values">
+                <span id="minDaysValue">0 days</span>
+                <span>30 days</span>
             </div>
         </div>
+        <div class="slider-group">
+            <label for="maxDays">Maximum Days Ago:</label>
+            <input type="range" id="maxDays" min="0" max="30" value="30">
+            <div class="slider-values">
+                <span id="maxDaysValue">30 days</span>
+                <span>0 days</span>
+            </div>
+        </div>
+    </div>
 
-        <div id="map" class="mb-6"></div>
-        <div id="geolocation-message" class="alert d-none"></div>
-        <p class="text-sm text-gray-600 text-center">
-            Your Google Maps API key is included in the script tag.
-        </p>
-    </div>
-    <div id="console-output" class="container mx-auto p-6 bg-white rounded-lg shadow-xl max-w-4xl mt-4">
-        <strong>Console Output:</strong><br>
-    </div>
+    <div id="map"></div>
+
+    <div id="console-output"></div>
 
     <script>
-        // --- Console Override Setup (Must be at the very top of script) ---
-        const originalConsoleError = console.error;
-        const originalConsoleWarn = console.warn;
-        let consoleOutputDiv; // Will be assigned in initMap
+        // Setup custom console output
+        (function() {
+            const consoleOutput = document.getElementById('console-output');
+            if (!consoleOutput) return;
 
-        function appendToConsoleOutput(message, type) {
-            if (consoleOutputDiv) {
+            function appendMessage(type, message) {
                 const p = document.createElement('p');
-                p.className = type;
+                p.className = `console-${type}`;
                 p.textContent = `[${type.toUpperCase()}] ${message}`;
-                consoleOutputDiv.appendChild(p);
-                // Scroll to bottom
-                consoleOutputDiv.scrollTop = consoleOutputDiv.scrollHeight;
+                consoleOutput.appendChild(p);
+                consoleOutput.scrollTop = consoleOutput.scrollHeight; // Auto-scroll to bottom
             }
-        }
 
-        console.error = function(...args) {
-            const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
-            appendToConsoleOutput(message, 'error');
-            originalConsoleError.apply(console, args);
-        };
+            const originalLog = console.log;
+            const originalWarn = console.warn;
+            const originalError = console.error;
 
-        console.warn = function(...args) {
-            const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
-            appendToConsoleOutput(message, 'warning');
-            originalConsoleWarn.apply(console, args);
-        };
-        // --- End Console Override Setup ---
+            console.log = function(...args) {
+                originalLog.apply(console, args);
+                appendMessage('log', args.join(' '));
+            };
+            console.warn = function(...args) {
+                originalWarn.apply(console, args);
+                appendMessage('warn', args.join(' '));
+            };
+            console.error = function(...args) {
+                originalError.apply(console, args);
+                appendMessage('error', args.join(' '));
+            };
+        })();
 
 
-        // Define the job listings data with more detailed descriptions, including rating, number of ratings, price range,
-        // and a new 'openAtNoonWeekday' property for conditional coloring, and 'datePosted'.
-        const jobListings = [
-            { job: "Server", company: "Dimmi Dimmi Corner Italian", address: "1112 West Armitage Avenue, Chicago, IL", description: "Seeking an enthusiastic and experienced server to join our authentic Italian restaurant. Must have a passion for food, excellent customer service skills, and be able to thrive in a fast-paced environment. Responsibilities include taking orders, serving food and beverages, and ensuring guest satisfaction. We offer a friendly work environment and opportunities for growth.", rating: 4.5, numRatings: 320, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 1 day ago" },
-            { job: "Server", company: "Francesca's Amici", address: "174 N York St, Elmhurst, IL 60126, United States", description: "Join our vibrant team at Francesca's Amici! We're looking for a friendly, efficient, and reliable server to provide exceptional dining experiences. Ideal candidates will have prior serving experience, strong communication skills, and a positive attitude. NOW HIRING Servers, bussers, bartenders... JOIN A WINNING TEAM @ Francesca's Amici in Elmhurst, IL. A successful and neighborhood Italian restaurant/bar that has been around for over 20 years is now hiring servers/bartenders/bussers. Be part of a great opportunity and an amazing staff that delivers first class service. Come show off your personality while giving brilliant service each day, each night, and everytime in-between.", rating: 4.2, numRatings: 580, priceRange: "$$$", openAtNoonWeekday: true, datePosted: "Posted 1 day ago" },
-            { job: "Server", company: "Kingston Mines", address: "2548 N Halsted St, Chicago, IL, United States", description: "Night owl server needed for Chicago's legendary blues club. This is a high-energy, fast-paced environment requiring quick thinking and excellent multi-tasking abilities. Experience in a bar or live music venue is a plus. Must be comfortable working late nights and handling a high volume of customers. Great tips!", rating: 4.6, numRatings: 1200, priceRange: "$$", openAtNoonWeekday: false, datePosted: "Posted 1 day ago" },
-            { job: "Server", company: "Longman & Eagle", address: "2657 N Kedzie Ave, Chicago, IL", description: "Award-winning restaurant seeking an experienced server with a strong background in fine dining and craft beverages. Candidates should possess extensive menu knowledge, impeccable service standards, and a genuine passion for hospitality. Sommelier certification is a bonus. We pride ourselves on a unique culinary experience and a strong team.", rating: 4.7, numRatings: 750, priceRange: "$$$$", openAtNoonWeekday: true, datePosted: "Posted 1 day ago" },
-            { job: "Cocktail Server", company: "Vela Bar Cocina", address: "Chicago, IL", description: "Energetic and charismatic cocktail server for a vibrant bar and cocina. Must be 21+ and have experience serving cocktails in a busy setting. Responsibilities include taking drink orders, delivering beverages, and maintaining a clean and inviting bar area. Opportunities for creative input on new drink menus.", rating: 4.3, numRatings: 210, priceRange: "$$$", openAtNoonWeekday: false, datePosted: "Posted 1 day ago" },
-            { job: "Server", company: "Little Wok", address: "1950 W Division St, Chicago, IL 60622, United States", description: "Part-time server for a popular Asian eatery. We are looking for a reliable individual with flexible hours who can provide friendly and efficient service to our diverse clientele. Experience with Asian cuisine is a plus but not required. Join a close-knit team in a casual, fast-paced environment.", rating: 4.0, numRatings: 180, priceRange: "$", openAtNoonWeekday: true, datePosted: "Posted 2 days ago" },
-            { job: "Server", company: "3rd Coast Cafe & Wine Bar", address: "1260 N Dearborn St, Chicago, IL, United States", description: "Charming cafe and wine bar seeking a server with a passion for hospitality and a good understanding of wine. Responsibilities include serving food and beverages, recommending wine pairings, and creating a welcoming atmosphere for our guests. Ideal for someone who enjoys a relaxed yet sophisticated setting.", rating: 4.4, numRatings: 400, priceRange: "$$$", openAtNoonWeekday: true, datePosted: "Posted 2 days ago" },
-            { job: "Server", company: "Brownstone", address: "3937 N Lincoln Ave, Chicago, IL 60613, United States", description: "Casual American restaurant looking for a reliable and friendly server to join our neighborhood favorite. We value teamwork and a positive attitude. Prior serving experience is preferred, but we are willing to train motivated individuals. Enjoy a steady flow of regulars and a supportive staff.", rating: 4.1, numRatings: 300, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 2 days ago" },
-            { job: "Server", company: "Lark Pizza", address: "3130 North Rockwell Street, Chicago, IL", description: "Pizza restaurant seeking a server to join our fun and dynamic team. If you love pizza and enjoy providing excellent customer service, this is the place for you! Responsibilities include taking orders, serving food, and ensuring a great dining experience for families and friends.", rating: 4.2, numRatings: 250, priceRange: "$", openAtNoonWeekday: true, datePosted: "Posted 2 days ago" },
-            { job: "Server", company: "Chicago Waffles - South Loop", address: "1400 S Michigan Ave, Chicago, IL 60605, USA", description: "Breakfast and lunch server for a busy waffle house in the South Loop. Early mornings and weekend availability are required. Must be able to handle high volume and provide quick, friendly service to our hungry customers. A great spot for early risers!", rating: 4.3, numRatings: 600, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 3 days ago" },
-            { job: "Server", company: "Chicago Waffles - Lincoln Square", address: "4768 North Lincoln Avenue, Chicago, IL", description: "Join our Lincoln Square team! Server position open for a popular brunch spot. We are looking for an energetic individual who enjoys a bustling environment and can provide memorable breakfast and lunch experiences. Become part of a local favorite.", rating: 4.4, numRatings: 550, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 3 days ago" },
-            { job: "Server", company: "Zarella Pizzeria & Taverna", address: "531 N Wells St, Chicago, IL 60654", description: "New pizzeria and taverna hiring servers. This is a great opportunity for growth in a new establishment. We seek individuals with a strong work ethic and a desire to contribute to a positive team atmosphere. Be part of building a new culinary destination.", rating: 4.1, numRatings: 150, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 5 days ago" },
-            { job: "Server", company: "Trino", address: "738 West Randolph Street, Chicago, IL", description: "Upscale restaurant seeking a professional and attentive server for our fine dining establishment. Candidates should have extensive knowledge of food and wine, impeccable service etiquette, and a commitment to guest satisfaction. Experience with high-profile clientele is a plus.", rating: 4.6, numRatings: 380, priceRange: "$$$$", openAtNoonWeekday: true, datePosted: "Posted 6 days ago" },
-            { job: "Server", company: "Moody Tongue Brewing Company", address: "2515 South Wabash Avenue, Chicago, IL", description: "Server for a unique brewing company with a sophisticated tasting room. Craft beer knowledge is a significant plus. Responsibilities include guiding guests through our beer selections and serving food pairings. Ideal for those passionate about brewing and gourmet experiences.", rating: 4.5, numRatings: 290, priceRange: "$$$", openAtNoonWeekday: false, datePosted: "Posted 6 days ago" },
-            { job: "Server", company: "Mercadito", address: "108 West Kinzie Street, Chicago, IL, United States", description: "Vibrant Mexican restaurant seeking a server with a positive attitude and a passion for Latin cuisine. Must be able to work in a lively environment and provide excellent service to large parties. Experience with a high-volume, energetic crowd is preferred.", rating: 4.3, numRatings: 480, priceRange: "$$$", openAtNoonWeekday: true, datePosted: "Posted 8 days ago" },
-            { job: "Server", company: "Galit", address: "2429 North Lincoln Avenue, Chicago, IL", description: "Michelin-starred Middle Eastern restaurant looking for experienced servers. Candidates should have a refined sense of hospitality, attention to detail, and a deep appreciation for culinary excellence. Prior experience in a similar setting is essential. Join a team dedicated to exceptional dining.", rating: 4.8, numRatings: 620, priceRange: "$$$$", openAtNoonWeekday: true, datePosted: "Posted 8 days ago" },
-            { job: "Front of House and Dishwasher", company: "Offset BBQ", address: "1720 N California Ave, Chicago, IL 60647, United States", description: "Offset BBQ is seeking a Front of House and Dishwasher to join our team. Responsibilities include customer service, taking orders, cleaning, and dishwashing. Must be reliable and a team player.", rating: 4.0, numRatings: 50, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 9 days ago" },
-            { job: "Front of House Staff", company: "All Together Now", address: "2119 W Chicago Ave, Chicago, IL 60622, United States", description: "All Together Now is looking for friendly and efficient Front of House Staff. Duties include greeting customers, taking orders, serving food and beverages, and maintaining a clean dining area. Experience preferred.", rating: 4.3, numRatings: 120, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 9 days ago" },
-            { job: "Server", company: "The Peninsula Chicago", address: "108 E Superior St, Chicago, IL 60611", description: "The Peninsula Chicago is seeking a highly professional and experienced Server for its fine dining establishment. Candidates must have extensive knowledge of food and wine, impeccable service standards, and a commitment to guest satisfaction.", rating: 4.9, numRatings: 1500, priceRange: "$$$$", openAtNoonWeekday: true, datePosted: "Posted 9 days ago" },
-            { job: "Server", company: "I|O Godfrey", address: "127 West Huron Street, Chicago, IL", description: "I|O Godfrey, a rooftop lounge, is looking for an energetic and experienced Server. Must be comfortable in a fast-paced, high-volume environment and possess excellent customer service skills. Evening and weekend availability required.", rating: 4.7, numRatings: 800, priceRange: "$$$$", openAtNoonWeekday: false, datePosted: "Posted 9 days ago" },
-            { job: "Server", company: "Coda Di Volpe", address: "3335 N Southport Ave, Chicago, IL", description: "Coda Di Volpe, an authentic Italian restaurant, is seeking a Server. Ideal candidates will have a passion for Italian cuisine, strong communication skills, and the ability to provide exceptional dining experiences.", rating: 4.5, numRatings: 400, priceRange: "$$$", openAtNoonWeekday: true, datePosted: "Posted 10 days ago" },
-            { job: "Server", company: "Hatty's Club & Cafe", address: "7100 Lyndon Street, Rosemont, IL", description: "Hatty's Club & Cafe is looking for a friendly and efficient Server. Responsibilities include taking orders, serving food and beverages, and ensuring guest satisfaction. Must be a team player with a positive attitude.", rating: 3.8, numRatings: 70, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 12 days ago" },
-            { job: "Server", company: "Jackman & Co.", address: "1749 Glenview Road, Glenview, IL", description: "Jackman & Co. is seeking a dedicated Server to join our team. We offer a warm and welcoming environment. Candidates should have prior serving experience and excellent customer service skills.", rating: 4.2, numRatings: 100, priceRange: "$$$", openAtNoonWeekday: true, datePosted: "Posted 12 days ago" },
-            { job: "Server", company: "SPACE 519 |The Lunchroom - Wilmette", address: "1515 Sheridan Rd, Wilmette, IL 60091", description: "SPACE 519 | The Lunchroom is hiring a Server for its Wilmette location. Responsibilities include serving meals, maintaining cleanliness, and providing excellent customer service in a casual cafe setting.", rating: 4.1, numRatings: 90, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 12 days ago" },
-            { job: "Server", company: "Figo Wine Bar", address: "3207 North Sheffield Avenue, Chicago, IL", description: "Figo Wine Bar is seeking an experienced Server with a strong understanding of wine and spirits. Candidates should have excellent communication skills and a passion for providing a sophisticated dining experience.", rating: 4.6, numRatings: 300, priceRange: "$$$$", openAtNoonWeekday: false, datePosted: "Posted 13 days ago" },
-            { job: "Front of House Staff", company: "The Western Bar & Kitchen", address: "4301 North Western Avenue, Chicago, IL", description: "The Western Bar & Kitchen is looking for energetic Front of House Staff. Duties include greeting guests, seating, taking orders, and assisting servers. Fast-paced environment, evening and weekend availability required.", rating: 4.0, numRatings: 180, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 13 days ago" },
-            { job: "Server (Hourly)", company: "Aviary", address: "955 West Fulton Market, Chicago, IL, United States", description: "Aviary is seeking an hourly Server for its unique cocktail lounge. Candidates should have extensive knowledge of cocktails, impeccable service standards, and the ability to thrive in a high-end, fast-paced environment.", rating: 4.8, numRatings: 500, priceRange: "$$$$", openAtNoonWeekday: false, datePosted: "Posted 14 days ago" },
-            { job: "Front of House Staff", company: "ILA's Chicago", address: "15 West Hubbard Street, Chicago, IL", description: "ILA's Chicago is hiring Front of House Staff. Responsibilities include customer service, taking orders, and maintaining a clean and inviting atmosphere. Experience in a casual dining setting preferred.", rating: 4.1, numRatings: 110, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 14 days ago" },
-            { job: "Server", company: "Acanto", address: "18 S Michigan Ave, Chicago, IL 60603, United States", description: "Acanto, an Italian restaurant, is looking for a Server. Candidates should have a strong background in fine dining, excellent menu knowledge, and a commitment to providing exceptional service.", rating: 4.7, numRatings: 600, priceRange: "$$$$", openAtNoonWeekday: true, datePosted: "Posted 14 days ago" },
-            { job: "Server", company: "Publican Quality Meats Restaurant", address: "825 West Fulton Market, Chicago, IL, United States", description: "Publican Quality Meats Restaurant is seeking a Server. We are looking for individuals with a passion for food, strong communication skills, and the ability to work in a dynamic, team-oriented environment.", rating: 4.4, numRatings: 350, priceRange: "$$$", openAtNoonWeekday: true, datePosted: "Posted 14 days ago" },
-            { job: "Front of House Staff", company: "Hiro Izakaya", address: "Chicago, IL", description: "Hiro Izakaya is hiring Front of House Staff. Duties include greeting customers, taking orders, and assisting with food and beverage service. Experience in Japanese cuisine or a similar environment is a plus.", rating: 4.0, numRatings: 75, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 14 days ago" },
-            { job: "Server", company: "The Lawn at Wilmette Golf Club", address: "3900 Fairway Drive, Wilmette, IL", description: "The Lawn at Wilmette Golf Club is looking for a Server for its outdoor dining area. Responsibilities include serving food and beverages to club members and guests. Seasonal position, requires weekend availability.", rating: 3.9, numRatings: 40, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 15 days ago" },
-            { job: "Server", company: "Mather Place", address: "2801 Old Glenview Rd, Wilmette, IL 60091", description: "Mather Place, a senior living community, is seeking a Server for its dining services. Responsibilities include serving meals to residents in a respectful and friendly manner. Experience in a similar setting is a plus.", rating: 4.3, numRatings: 60, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 15 days ago" },
-            { job: "Server", company: "The Vig West Loop", address: "312 N Carpenter St, Chicago, IL 60607, United States", description: "The Vig West Loop is looking for an enthusiastic Server to join its vibrant team. Must be able to work in a fast-paced environment, provide excellent customer service, and handle high volume.", rating: 4.2, numRatings: 200, priceRange: "$$$", openAtNoonWeekday: false, datePosted: "Posted 15 days ago" },
-            { job: "Banquet Server (On Call)", company: "East Bank Club", address: "Chicago,IL", description: "On-call banquet server for a premier health and fitness club. Responsibilities include setting up and serving at various events, from corporate gatherings to private parties. Flexibility and a professional demeanor are key. Excellent opportunity for supplemental income.", rating: 4.0, numRatings: 90, priceRange: "$$$", openAtNoonWeekday: true, datePosted: "Posted 21 days ago" },
-            { job: "Server", company: "Marriott", address: "Chicago,IL", description: "Hotel server position available at a downtown Marriott location. This role involves serving guests in our hotel restaurant, room service, and potentially banquets. Professionalism and a commitment to guest satisfaction are paramount. Work in a dynamic hospitality environment.", rating: 4.2, numRatings: 700, priceRange: "$$$", openAtNoonWeekday: true, datePosted: "Posted 23 days ago" },
-            { job: "Server", company: "La Grande Boucherie - Chicago", address: "431 North Dearborn Street, Chicago, IL 60654", description: "French brasserie seeking a server with a passion for classic cuisine and an elegant service style. Knowledge of French culinary terms and wine is highly desirable. Join our team and transport guests to the heart of Paris with impeccable service.", rating: 4.5, numRatings: 450, priceRange: "$$$$", openAtNoonWeekday: true, datePosted: "Posted 26 days ago" },
-            { job: "Banquet Server", company: "Julia Valler Event Staffing - Chicago", address: "Chicago, IL", description: "Event staffing company hiring banquet servers for various events across Chicago. We are looking for reliable, professional, and experienced individuals who can adapt to different event settings and client needs. Great for those seeking flexible work.", rating: 4.0, numRatings: 120, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 29 days ago" },
-            { job: "Server", company: "Thattu", address: "2601 W Fletcher St, Chicago, IL 60618, United States", "description": "South Indian restaurant seeking a server to provide excellent customer service and introduce guests to our unique flavors. Experience with Indian cuisine is a plus, but a willingness to learn and a friendly attitude are most important. Be part of a growing culinary scene.", rating: 4.6, numRatings: 190, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 30 days ago" },
-            { job: "Server", company: "Grill 21", address: "208 South LaSalle Street, Chicago, IL", description: "Steakhouse and grill looking for a server with strong communication skills and a passion for delivering a premium dining experience. Knowledge of cuts of meat and wine pairings will be beneficial. Work in a sophisticated downtown setting.", rating: 4.4, numRatings: 310, priceRange: "$$$$", openAtNoonWeekday: true, datePosted: "Posted 31 days ago" },
-            { job: "Server", company: "The Drifter", address: "676 North Orleans Street, Chicago, IL 60654, United States", description: "Unique speakeasy bar seeking a server for evening shifts. This role requires a flair for storytelling, excellent cocktail knowledge, and the ability to create an immersive experience for our patrons. Join a team that values creativity and exceptional service.", rating: 4.7, numRatings: 270, priceRange: "$$$", openAtNoonWeekday: false, datePosted: "Posted 32 days ago" },
-            { job: "Lounge Server", company: "The Pearl Club Chicago", address: "495 North Milwaukee Avenue, Chicago, IL", description: "Exclusive lounge seeking a professional and discreet lounge server to cater to our discerning clientele. Experience in high-end establishments and a commitment to privacy and exceptional service are required. This is a role for those who excel in a refined environment.", rating: 4.8, numRatings: 110, priceRange: "$$$$", openAtNoonWeekday: false, datePosted: "Posted 33 days ago" },
-            { job: "Server", company: "The Green Door Tavern", address: "678 N Orleans St, Chicago, IL, United States", description: "Historic tavern seeking a server to join our friendly team. If you enjoy a lively atmosphere and serving classic American fare, this is the perfect fit. Experience in a high-volume pub environment is a plus. Become part of Chicago's rich history.", rating: 4.3, numRatings: 500, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 34 days ago" },
-            { job: "Server", company: "DeNucci's - Highland Park", address: "1850 2nd Street unit 110, Highland Park, IL", description: "Italian restaurant in Highland Park looking for a dedicated server. We offer a warm, family-friendly atmosphere and seek individuals who can provide attentive and personalized service to our guests. A great opportunity in a charming suburban setting.", rating: 4.1, numRatings: 160, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 35 days ago" },
-            { job: "Barista/FOH", company: "Hewn - Evanston", address: "1733 Central St, Evanston, IL 60201", description: "Artisan bakery and cafe seeking a passionate barista and front-of-house staff. Must have excellent coffee-making skills, a friendly demeanor, and be able to handle transactions and customer inquiries efficiently. Join a team dedicated to quality baked goods and coffee.", rating: 4.5, numRatings: 800, priceRange: "$", openAtNoonWeekday: true, datePosted: "Posted 36 days ago" },
-            { job: "Front Server", company: "Chicago Chop House", address: "60 W Ontario St, Chicago, IL 60654", description: "High-end steakhouse seeking a polished and experienced front server. Responsibilities include assisting the main server, clearing tables, refilling water, and ensuring the dining room runs smoothly. Attention to detail is crucial for this prestigious establishment.", rating: 4.7, numRatings: 900, priceRange: "$$$$", openAtNoonWeekday: true, datePosted: "Posted 37 days ago" },
-            { job: "Server", company: "Monster Ramen", address: "3435 W Fullerton Ave, Chicago, IL 60647, United States", description: "Ramen shop looking for a server to handle orders, deliver delicious ramen, and provide excellent customer service. A love for Japanese cuisine and a fast-paced work ethic are ideal. Join a popular spot known for authentic flavors.", rating: 4.2, numRatings: 220, priceRange: "$", openAtNoonWeekday: true, datePosted: "Posted 38 days ago" },
-            { job: "Server", company: "The Table at Crate", address: "Oak Brook, IL", description: "Restaurant within Crate & Barrel seeking a server for a unique dining experience. This role combines retail and hospitality, requiring a blend of customer service skills and an appreciation for home goods. A distinctive environment for a server.", rating: 4.3, numRatings: 280, priceRange: "$$$", openAtNoonWeekday: true, datePosted: "Posted 39 days ago" },
-            { job: "Server", company: "Valhalla", address: "2020 W Division St, Chicago, IL 60622", description: "Modern American restaurant seeking a server for a dynamic environment. We are looking for individuals who are energetic, adaptable, and committed to providing a memorable dining experience. Be part of a contemporary culinary team.", rating: 4.0, numRatings: 140, priceRange: "$$", openAtNoonWeekday: true, datePosted: "Posted 40 days ago" },
-            { job: "Server", company: "Chicago Athletic Association", address: "12 S Michigan Ave, Chicago, IL 60603", description: "Historic hotel seeking a server for its various dining outlets, including a rooftop bar and a classic tavern. This role requires versatility and the ability to provide high-quality service in different settings. A grand setting for a hospitality professional.", rating: 4.6, numRatings: 1100, priceRange: "$$$$", openAtNoonWeekday: true, datePosted: "Posted 41 days ago" }
+        // Define the list of job locations with added details
+        const jobLocations = [
+            { name: "Server at Dimmi Dimmi Corner Italian", address: "1112 West Armitage Avenue, Chicago, IL", rating: "4.5", numRatings: "500 reviews", priceRange: "$$", isOpenAtNoonWeekdays: true, postedDate: "2025-07-01", details: "<strong>Description:</strong> Seeking a dedicated full-time server for our bustling Italian corner restaurant. Evening and weekend shifts are required. Prior experience in a fast-paced dining environment is highly preferred, with a focus on delivering exceptional customer service and a warm, inviting atmosphere.<br><br><strong>Expanded Description:</strong><br><strong>NOW HIRING: Enthusiastic Servers!</strong><br>Join our close-knit team at Dimmi Dimmi. We offer competitive pay, a friendly work environment, and opportunities for growth. If you love authentic Italian food and providing top-notch service, apply today!" },
+            { name: "Server at Francesca's Amici", address: "1740 North Campbell Avenue, Chicago, IL", rating: "4.2", numRatings: "720 reviews", priceRange: "$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-28", details: "<strong>Description:</strong> Join our vibrant team at Francesca's Amici! We're looking for a friendly, efficient, and reliable server to provide exceptional dining experiences. Ideal candidates will have prior serving experience, strong communication skills, and a positive attitude.<br><br><strong>Expanded Description:</strong><br><strong>NOW HIRING Servers, Bussers, Bartenders!</strong><br>JOIN A WINNING TEAM @ Francesca's Amici in Elmhurst, IL. A successful and neighborhood Italian restaurant/bar that has been around for over 20 years is now hiring servers/bartenders/bussers. Be part of a great opportunity and an amazing staff that delivers first-class service. Come show off your personality while giving brilliant service each day, each night, and every time in-between." },
+            { name: "Server at The Smith", address: "400 North Clark Street, Chicago, IL", rating: "4.3", numRatings: "900 reviews", priceRange: "$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-25", details: "<strong>Description:</strong> Experienced server wanted for a high-volume, modern American restaurant. Must thrive in a busy setting, manage multiple tables efficiently, and possess extensive food and beverage knowledge. Full-time positions available with competitive pay.<br><br><strong>Expanded Description:</strong><br><strong>The Smith is Expanding!</strong><br>We are looking for dynamic individuals to join our front-of-house team. If you have a passion for hospitality and a desire to work in a fast-paced, upscale environment, we encourage you to apply. Growth opportunities abound!" },
+            { name: "Server at Siena Tavern", address: "51 West Kinzie Street, Chicago, IL", rating: "4.6", numRatings: "1200 reviews", priceRange: "$$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-20", details: "<strong>Description:</strong> Upscale dining experience required for our contemporary Italian restaurant. We are looking for professional, polished servers with a strong understanding of fine dining etiquette and wine pairings. Flexible hours and opportunities for growth.<br><br><strong>Expanded Description:</strong><br><strong>Career Opportunity at Siena Tavern</strong><br>Elevate your career with a leading name in Chicago's dining scene. We seek dedicated professionals committed to delivering memorable experiences. Comprehensive training and a supportive team await." },
+            { name: "Server at Fioretta", address: "312 North Mayflower Avenue, Chicago, IL", rating: "4.0", numRatings: "150 reviews", priceRange: "$$", isOpenAtNoonWeekdays: false, postedDate: "2025-07-05", details: "<strong>Description:</strong> Be a part of our exciting new opening! We are seeking enthusiastic and adaptable team members for all shifts. Previous serving experience is a plus, but we are willing to train individuals with a positive attitude and a strong work ethic.<br><br><strong>Expanded Description:</strong><br><strong>Grand Opening Team Members Wanted!</strong><br>Fioretta is a brand-new concept bringing fresh flavors to Chicago. Join our inaugural team and help us build a reputation for outstanding service and delicious food. Great opportunity for career development." },
+            { name: "Server at Lettuce Entertain You Restaurants", address: "541 North Fairbanks Court, Chicago, IL", rating: "4.7", numRatings: "5000+ reviews", priceRange: "$$-$$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-15", details: "<strong>Description:</strong> Join one of Chicago's premier restaurant groups! We have various server opportunities across our diverse portfolio of concepts. Ideal candidates are passionate about hospitality, eager to learn, and committed to excellence. Both full-time and part-time roles are available.<br><br><strong>Expanded Description:</strong><br><strong>Lettuce Entertain You: Your Next Career Move!</strong><br>With dozens of unique restaurants, LEY offers unparalleled opportunities for growth and development in the hospitality industry. Apply to become part of a company that values its people and provides a path for success." },
+            { name: "Server at Le Colonial", address: "57 East Oak Street, Chicago, IL", rating: "4.4", numRatings: "850 reviews", priceRange: "$$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-29", details: "<strong>Description:</strong> Fine dining server position at our elegant French-Vietnamese restaurant. Candidates should have a sophisticated presence, excellent communication skills, and a keen eye for detail. Knowledge of French and Vietnamese cuisine, along with wine service, is a significant advantage.<br><br><strong>Expanded Description:</strong><br><strong>Le Colonial: Experience Elegance</strong><br>We are searching for refined servers who can complement our exquisite cuisine and ambiance. If you possess a passion for luxury service and cultural culinary experiences, we invite you to apply." },
+            { name: "Server at Swift & Sons", address: "1000 West Fulton Market, Chicago, IL", rating: "4.6", numRatings: "1100 reviews", priceRange: "$$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-07-02", details: "<strong>Description:</strong> Seeking a skilled server for our renowned steakhouse. Must have proven experience in high-end dining, exceptional knowledge of meat cuts, and a strong understanding of wine and spirits. This is a demanding yet highly rewarding role.<br><br><strong>Expanded Description:</strong><br><strong>Join the Swift & Sons Family</strong><br>Become a part of a celebrated steakhouse team. We offer a dynamic work environment where professionalism and passion for food and wine are highly valued. Excellent earning potential for dedicated individuals." },
+            { name: "Server at Gibsons Bar & Steakhouse", address: "1028 North Rush Street, Chicago, IL", rating: "4.8", numRatings: "2500 reviews", priceRange: "$$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-10", details: "<strong>Description:</strong> Join the team at an iconic Chicago steakhouse. We require experienced servers who can handle a high volume of guests while maintaining impeccable service standards. A strong work ethic and dedication to guest satisfaction are essential.<br><br><strong>Expanded Description:</strong><br><strong>Gibsons: A Chicago Institution</strong><br>We are always looking for top talent to uphold our legacy of unparalleled service. If you thrive in a classic, bustling steakhouse environment and are committed to excellence, apply to join our legendary team." },
+            { name: "Server at RPM Steak", address: "60 East Illinois Street, Chicago, IL", rating: "4.7", numRatings: "1050 reviews", priceRange: "$$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-22", details: "<strong>Description:</strong> Luxury dining server position at RPM Steak. We are looking for highly professional and discreet individuals with extensive experience in upscale environments. Comprehensive training on our menu, wine list, and service protocols will be provided.<br><br><strong>Expanded Description:</strong><br><strong>RPM Steak: Elevating Service</strong><br>Join a team dedicated to the highest standards of luxury hospitality. We offer a sophisticated work environment and opportunities to refine your skills alongside industry leaders. Discretion and attention to detail are paramount." },
+            { name: "Server at BLVD Steakhouse", address: "817 West Lake Street, Chicago, IL", rating: "4.5", numRatings: "780 reviews", priceRange: "$$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-07-03", details: "<strong>Description:</strong> Modern steakhouse seeking team-oriented servers. Candidates should be energetic, attentive, and able to contribute to a cohesive front-of-house team. Experience in a similar upscale setting is preferred.<br><br><strong>Expanded Description:</strong><br><strong>BLVD Steakhouse: Where Style Meets Service</strong><br>We are building a team of passionate hospitality professionals. If you have a flair for modern dining and a commitment to exceptional guest experiences, explore opportunities to grow with us." },
+            { name: "Server at Cafe Ba-Ba-Reeba!", address: "2024 North Halsted Street, Chicago, IL", rating: "4.3", numRatings: "1500 reviews", priceRange: "$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-18", details: "<strong>Description:</strong> Lively tapas restaurant looking for energetic servers. Must thrive in a fast-paced environment, be able to explain diverse small plates, and provide a fun, engaging dining experience. Good for individuals who enjoy a bustling atmosphere.<br><br><strong>Expanded Description:</strong><br><strong>Cafe Ba-Ba-Reeba!: Join the Fiesta!</strong><br>If you love Spanish culture and a vibrant work environment, we want you! We seek enthusiastic servers who can bring the energy and flavor of Spain to our guests. Full and part-time positions available." },
+            { name: "Server at Girl & The Goat", address: "809 West Randolph Street, Chicago, IL", rating: "4.8", numRatings: "2000+ reviews", priceRange: "$$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-05", details: "<strong>Description:</strong> Join the team at an award-winning restaurant known for its creative menu. We seek servers with high standards for service, a passion for unique culinary experiences, and the ability to articulate complex dishes to guests.<br><br><strong>Expanded Description:</strong><br><strong>Girl & The Goat: Culinary Excellence</strong><br>Work alongside acclaimed chefs and a dedicated front-of-house team. This is an opportunity to be part of a highly respected establishment that pushes culinary boundaries. Previous experience in high-end, innovative dining is a must." },
+            { name: "Server at Aba", address: "303 North Green Street, Chicago, IL", rating: "4.6", numRatings: "1800 reviews", priceRange: "$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-07-01", details: "<strong>Description:</strong> Mediterranean rooftop restaurant seeking servers for a beautiful ambiance. Ideal candidates are friendly, efficient, and able to work in a high-energy, outdoor-focused setting. Experience with Mediterranean cuisine is a plus.<br><br><strong>Expanded Description:</strong><br><strong>Aba: Rooftop Views, Top-Tier Service</strong><br>We are looking for servers who can deliver exceptional service in a stunning, high-energy environment. Experience with Mediterranean flavors and a passion for creating memorable outdoor dining experiences are highly valued." },
+            { name: "Server at The Publican", address: "837 West Fulton Market, Chicago, IL", rating: "4.4", numRatings: "950 reviews", priceRange: "$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-26", details: "<strong>Description:</strong> Farm-to-table concept looking for servers who appreciate quality ingredients and craft beverages. Knowledge of beer and oysters is beneficial, along with a commitment to providing an authentic and welcoming dining experience.<br><br><strong>Expanded Description:</strong><br><strong>The Publican: Celebrating Craft</strong><br>Join a team that champions artisanal food and drink. We seek servers who are passionate about product knowledge and can share the story behind our ingredients. A love for beer, charcuterie, and oysters is a plus!" },
+            { name: "Server at Esmé", address: "2200 North Lincoln Avenue, Chicago, IL", rating: "4.9", numRatings: "300 reviews", priceRange: "$$$$$", isOpenAtNoonWeekdays: false, postedDate: "2025-07-08", details: "<strong>Description:</strong> Michelin-starred restaurant seeking servers with exceptional service skills and a deep understanding of fine dining. This role requires precision, grace, and the ability to contribute to an unforgettable culinary journey for our guests.<br><br><strong>Expanded Description:</strong><br><strong>Esmé: A World-Class Experience</strong><br>We invite highly skilled and dedicated professionals to join our Michelin-starred team. This is a unique opportunity to work at the pinnacle of culinary artistry and provide unparalleled service to discerning clientele." },
+            { name: "Server at Bar Siena", address: "832 West Randolph Street, Chicago, IL", rating: "4.3", numRatings: "1100 reviews", priceRange: "$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-21", details: "<strong>Description:</strong> Italian-inspired restaurant with a vibrant atmosphere. We're looking for servers with strong communication skills, who can manage a busy section and contribute to a fun, energetic dining experience. Experience with Italian cuisine is a plus.<br><br><strong>Expanded Description:</strong><br><strong>Bar Siena: High Energy, High Rewards</strong><br>If you thrive in a bustling, social environment and have a passion for modern Italian food, we want you! Join our dynamic team on Restaurant Row and help us create an unforgettable experience for every guest." },
+            { name: "Server at Chicago Chop House", address: "60 W Ontario St, Chicago, IL 60654", rating: "4.4", numRatings: "1300 reviews", priceRange: "$$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-19", details: "<strong>Description:</strong> Classic steakhouse seeking professional and experienced servers. Must be comfortable serving an established clientele, maintaining high standards of service, and adhering to a formal dress code. Full-time positions available.<br><br><strong>Expanded Description:</strong><br><strong>Chicago Chop House: A Legacy of Excellence</strong><br>Uphold the tradition of a true Chicago institution. We are seeking seasoned servers who understand the nuances of classic steakhouse service and are committed to delivering a superior dining experience. Join our esteemed team." },
+            { name: "Server at RPM Italian", address: "52 West Illinois Street, Chicago, IL", rating: "4.6", numRatings: "1400 reviews", priceRange: "$$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-07-04", details: "<strong>Description:</strong> Modern Italian restaurant, a celebrity hotspot, seeking servers with meticulous attention to detail and a polished demeanor. Experience in a high-profile, fast-paced environment is essential.<br><br><strong>Expanded Description:</strong><br><strong>RPM Italian: Where Style Meets Substance</strong><br>Join a team dedicated to delivering a seamless and sophisticated dining experience. We are looking for highly professional individuals who thrive in a fast-paced, high-volume, and high-profile setting. Opportunities for growth within a leading restaurant group." },
+            { name: "Server at Coco Loco", address: "167 West Erie Street, Chicago, IL", rating: "4.1", numRatings: "600 reviews", priceRange: "$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-30", details: "<strong>Description:</strong> Latin American cuisine restaurant seeking energetic servers. Must be able to work in a fun, lively setting and provide excellent service with a positive attitude. Bilingual Spanish/English is a bonus.<br><br><strong>Expanded Description:</strong><br><strong>Coco Loco: Bring the Flavor!</strong><br>We're looking for vibrant servers to join our festive team. If you love Latin American food, music, and creating a lively atmosphere, this is the place for you. Bilingual skills are a plus!" },
+            { name: "Server at Armitage Alehouse", address: "1000 West Armitage Avenue, Chicago, IL", rating: "4.2", numRatings: "450 reviews", priceRange: "$$", isOpenAtNoonWeekdays: true, postedDate: "2025-07-06", details: "<strong>Description:</strong> Cozy pub atmosphere looking for servers with craft beer knowledge. Ideal candidates are friendly, efficient, and enjoy working in a relaxed yet attentive environment. Evening and weekend availability required.<br><br><strong>Expanded Description:</strong><br><strong>Armitage Alehouse: Your Neighborhood Spot</strong><br>Join our friendly team at this beloved local pub. We value a relaxed yet attentive approach to service and a genuine appreciation for craft beverages. Perfect for those who enjoy a community-focused environment." },
+            { name: "Server at Jaleo by José Andrés", address: "500 North Clark Street, Chicago, IL", rating: "4.5", numRatings: "980 reviews", priceRange: "$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-27", details: "<strong>Description:</strong> Spanish tapas restaurant seeking servers for a dynamic environment. Passion for Spanish food and culture is a must, along with the ability to guide guests through a unique culinary experience. Fast-paced and engaging.<br><br><strong>Expanded Description:</strong><br><strong>Jaleo: A Taste of Spain</strong><br>Be part of the culinary vision of José Andrés. We seek passionate servers who can articulate the story of Spanish cuisine and provide an immersive dining experience. A fast-paced, educational, and rewarding role." },
+            { name: "Server at The Brando", address: "1603 North Milwaukee Avenue, Chicago, IL", rating: "4.0", numRatings: "350 reviews", priceRange: "$$", isOpenAtNoonWeekdays: false, postedDate: "2025-07-09", details: "<strong>Description:</strong> Trendy spot seeking servers who thrive in a lively pace. Ideal for individuals who are quick on their feet, adaptable, and enjoy a vibrant, modern dining scene. Experience in high-volume settings preferred.<br><br><strong>Expanded Description:</strong><br><strong>The Brando: Be Part of the Buzz!</strong><br>Join our exciting and stylish restaurant team. We're looking for energetic servers who can keep up with a fast-paced environment and contribute to a chic, contemporary dining experience. Great for those seeking a dynamic role." },
+            { name: "Server at Avec", address: "615 West Randolph Street, Chicago, IL", rating: "4.6", numRatings: "1000 reviews", priceRange: "$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-24", details: "<strong>Description:</strong> Wine-focused restaurant seeking knowledgeable servers. Must have a strong understanding of wine and be comfortable guiding guests through our extensive list. Experience with communal dining concepts is a plus.<br><br><strong>Expanded Description:</strong><br><strong>Avec: A Sommelier's Dream</strong><br>If you have a passion for wine and a desire to deepen your knowledge, Avec offers an unparalleled opportunity. Join our team of experts and help guests explore our curated wine list alongside our acclaimed cuisine." },
+            { name: "Server at Rooh Chicago", address: "737 West Randolph Street, Chicago, IL", rating: "4.7", numRatings: "700 reviews", priceRange: "$$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-07-02", details: "<strong>Description:</strong> Modern Indian cuisine restaurant seeking servers who appreciate unique flavors and cultural experiences. Candidates should be articulate, able to explain complex dishes, and provide refined service in an elegant setting.<br><br><strong>Expanded Description:</strong><br><strong>Rooh Chicago: An Innovative Culinary Journey</strong><br>We are looking for sophisticated servers to join our team, delivering a unique modern Indian dining experience. If you are passionate about global flavors and refined service, this is an excellent opportunity." },
+            { name: "Server at Topolobampo", address: "445 North Clark Street, Chicago, IL", rating: "4.8", numRatings: "1100 reviews", priceRange: "$$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-17", details: "<strong>Description:</strong> Join Rick Bayless's acclaimed Mexican restaurant. We require servers with high standards for service, a deep understanding of authentic Mexican cuisine, and the ability to provide an educational and memorable dining experience.<br><br><strong>Expanded Description:</strong><br><strong>Topolobampo: Masterful Mexican Cuisine</strong><br>Be part of a culinary institution. We seek dedicated servers who share our passion for authentic Mexican flavors and can provide an educational, immersive dining experience. A commitment to excellence is key." },
+            { name: "Server at Big Star", address: "1530 North Damen Avenue, Chicago, IL", rating: "4.3", numRatings: "2000+ reviews", priceRange: "$$", isOpenAtNoonWeekdays: true, postedDate: "2025-07-01", details: "<strong>Description:</strong> Popular taco joint seeking energetic and efficient servers. This is a casual and fast-paced environment, ideal for individuals who can handle high volume with a positive attitude and a focus on guest satisfaction.<br><br><strong>Expanded Description:</strong><br><strong>Big Star: Taco 'Bout a Good Time!</strong><br>Join our lively and popular team! If you love a bustling atmosphere, great tacos, and providing friendly, efficient service, Big Star is the place for you. Weekend and evening availability essential." },
+            { name: "Server at Gilt Bar", address: "230 West Kinzie Street, Chicago, IL", rating: "4.2", numRatings: "800 reviews", priceRange: "$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-23", details: "<strong>Description:</strong> Speakeasy-inspired bar and restaurant seeking servers with craft cocktail knowledge. Must be able to provide attentive service in an intimate setting and contribute to a sophisticated, yet relaxed, atmosphere.<br><br><strong>Expanded Description:</strong><br><strong>Gilt Bar: Craft & Class</strong><br>We are looking for servers who appreciate the art of mixology and can deliver discreet, attentive service in our unique speakeasy setting. If you have a passion for cocktails and a refined approach to hospitality, apply now." },
+            { name: "Server at Pacific Standard Time", address: "141 West Erie Street, Chicago, IL", rating: "4.1", numRatings: "650 reviews", priceRange: "$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-07-05", details: "<strong>Description:</strong> California-inspired restaurant with a bright and airy space. We are looking for servers who can provide warm, friendly service and have a good understanding of seasonal, fresh ingredients. Brunch availability is a plus.<br><br><strong>Expanded Description:</strong><br><strong>Pacific Standard Time: Sunshine & Service</strong><br>Join our team bringing a taste of California to Chicago. We seek servers who embody warmth and efficiency, with an appreciation for fresh, seasonal cuisine. Brunch experience is a bonus for this bright and inviting space." },
+            { name: "Server at Piccolo Sogno", address: "464 North Halsted Street, Chicago, IL", rating: "4.5", numRatings: "1200 reviews", priceRange: "$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-12", details: "<strong>Description:</strong> Authentic Italian restaurant with a charming patio. Seeking servers who can create a family-like atmosphere and provide genuine hospitality. Knowledge of Italian food and wine is highly valued.<br><br><strong>Expanded Description:</strong><br><strong>Piccolo Sogno: A Taste of Italy</strong><br>We are looking for servers who can share our passion for authentic Italian cuisine and create a welcoming, family-like dining experience. If you appreciate traditional flavors and warm hospitality, join our team." },
+            { name: "Server at Sepia", address: "123 North Jefferson Street, Chicago, IL", rating: "4.7", numRatings: "750 reviews", priceRange: "$$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-07-01", details: "<strong>Description:</strong> Michelin-starred restaurant located in a historical building. We require servers with refined service skills, attention to detail, and a commitment to providing an exceptional fine dining experience. Experience in similar establishments is essential.<br><br><strong>Expanded Description:</strong><br><strong>Sepia: Historic Charm, Modern Excellence</strong><br>Become part of a Michelin-starred team in a beautifully restored historic setting. We seek highly skilled servers dedicated to precision, grace, and delivering an unparalleled fine dining experience." },
+            { name: "Server at Beatrix", address: "671 North Saint Clair Street, Chicago, IL", rating: "4.3", numRatings: "1600 reviews", priceRange: "$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-20", details: "<strong>Description:</strong> Coffeehouse and restaurant seeking versatile servers. Must be comfortable with both breakfast/lunch and dinner shifts, able to handle a bustling environment, and knowledgeable about healthy and fresh food options.<br><br><strong>Expanded Description:</strong><br><strong>Beatrix: Fresh Food, Fast Pace</strong><br>Join our energetic team at Beatrix! We're looking for adaptable servers who can seamlessly transition between breakfast, lunch, and dinner service, providing friendly and efficient service in a bustling, health-conscious environment." },
+            { name: "Server at Au Cheval", address: "800 West Randolph Street, Chicago, IL", rating: "4.6", numRatings: "2200 reviews", priceRange: "$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-15", details: "<strong>Description:</strong> Join the team at Chicago's famous burger spot. This is a high-energy environment with long waits, requiring servers who are quick, efficient, and can maintain a positive attitude under pressure. Fast-paced experience is a must.<br><br><strong>Expanded Description:</strong><br><strong>Au Cheval: The Best Burger, The Best Team!</strong><br>We're looking for high-energy servers who thrive in a fast-paced, high-volume environment. If you can keep cool under pressure and deliver exceptional service with a smile, join the team behind Chicago's most famous burger!" },
+            { name: "Server at The Gage", address: "24 S Michigan Ave, Chicago, IL", rating: "4.2", numRatings: "1400 reviews", priceRange: "$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-07-03", details: "<strong>Description:</strong> Gastropub located across from Millennium Park. Seeking servers who can navigate a diverse menu, from elevated pub fare to craft cocktails. Ideal for individuals who enjoy a lively, tourist-friendly atmosphere.<br><br><strong>Expanded Description:</strong><br><strong>The Gage: Iconic Views, Great Vibes</strong><br>Join our team directly across from Millennium Park. We seek versatile servers who can handle a diverse clientele and menu, from classic pub fare to sophisticated cocktails. A lively, tourist-friendly atmosphere awaits!" },
+            { name: "Server at Cherry Circle Room", address: "12 S Michigan Ave, Chicago, IL", rating: "4.5", numRatings: "550 reviews", priceRange: "$$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-29", details: "<strong>Description:</strong> Server position at a classic American restaurant within the historic Chicago Athletic Association hotel. We are looking for polished professionals who can deliver traditional, attentive service in an elegant setting.<br><br><strong>Expanded Description:</strong><br><strong>Cherry Circle Room: Timeless Elegance</strong><br>Step back in time and deliver classic hospitality. We seek polished servers who appreciate tradition and can provide refined, attentive service in our historic and elegant dining room." },
+            { name: "Server at Momotaro", address: "820 West Lake Street, Chicago, IL", rating: "4.7", numRatings: "900 reviews", priceRange: "$$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-07-01", details: "<strong>Description:</strong> Upscale Japanese restaurant seeking servers with knowledge of sushi and izakaya. Must be able to explain complex dishes and provide refined service in a modern, stylish environment. Sake knowledge is a bonus.<br><br><strong>Expanded Description:</strong><br><strong>Momotaro: Modern Japanese Mastery</strong><br>Join our team at this acclaimed Japanese restaurant. We are looking for servers with a passion for Japanese cuisine, including sushi and izakaya, and the ability to provide sophisticated service in a sleek, contemporary setting. Sake knowledge is a plus!" },
+            { name: "Server at The Capital Grille", address: "600 North Rush Street, Chicago, IL", rating: "4.6", numRatings: "1500 reviews", priceRange: "$$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-10", details: "<strong>Description:</strong> High-end steakhouse seeking servers with excellent service skills and experience catering to corporate clientele. Professionalism, attention to detail, and a strong understanding of wine are essential.<br><br><strong>Expanded Description:</strong><br><strong>The Capital Grille: Uncompromising Service</strong><br>We are seeking highly skilled and professional servers to join our esteemed team. If you excel in a high-end steakhouse environment and are committed to delivering impeccable service to a discerning clientele, we invite your application." },
+            { name: "Server at Quartino Ristorante", address: "626 North State Street, Chicago, IL", rating: "4.2", numRatings: "1800 reviews", priceRange: "$$", isOpenAtNoonWeekdays: true, postedDate: "2025-07-07", details: "<strong>Description:</strong> Italian small plates restaurant looking for energetic and efficient servers. This is a lively and popular spot, requiring individuals who can handle a high volume of guests while maintaining a friendly demeanor.<br><br><strong>Expanded Description:</strong><br><strong>Quartino: Share the Joy!</strong><br>Join our bustling Italian small plates restaurant. We're looking for energetic servers who thrive in a high-volume, friendly environment and love helping guests share a fantastic meal. Great tips and a fun team!" },
+            { name: "Server at The Dearborn", address: "145 West Randolph Street, Chicago, IL", rating: "4.3", numRatings: "1000 reviews", priceRange: "$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-25", details: "<strong>Description:</strong> American tavern in the theater district seeking servers for pre-show dining and general service. Must be able to work efficiently during peak hours and provide friendly service to a diverse clientele.<br><br><strong>Expanded Description:</strong><br><strong>The Dearborn: Your Stage in the Loop</strong><br>We're seeking versatile servers for our popular American tavern. Ideal candidates are efficient during peak theater hours and provide warm, friendly service to our diverse guests. A great opportunity in the heart of the Loop!" },
+            { name: "Server at Ocean Prime", address: "87 East Wacker Drive, Chicago, IL", rating: "4.7", numRatings: "1200 reviews", priceRange: "$$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-07-01", details: "<strong>Description:</strong> Seafood and steak restaurant with stunning river views. We are looking for elegant and experienced servers who can provide top-tier service in a sophisticated setting. Strong knowledge of seafood and wine is preferred.<br><br><strong>Expanded Description:</strong><br><strong>Ocean Prime: Views & Excellence</strong><br>Join our team at this premier seafood and steakhouse with breathtaking river views. We seek elegant and experienced servers dedicated to delivering top-tier service in a sophisticated environment. Seafood and wine expertise is a significant asset." },
+            { name: "Server at True Food Kitchen", address: "1 West Erie Street, Chicago, IL", rating: "4.4", numRatings: "900 reviews", priceRange: "$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-28", details: "<strong>Description:</strong> Health-focused restaurant seeking servers passionate about wellness and seasonal ingredients. Must be able to articulate our menu's health benefits and provide a friendly, informative dining experience.<br><br><strong>Expanded Description:</strong><br><strong>True Food Kitchen: Nourish Your Career</strong><br>If you're passionate about healthy living and delicious food, join our team! We're looking for servers who can inspire guests with our seasonal, wellness-focused menu and provide friendly, knowledgeable service." },
+            { name: "Server at Pizzeria Portofino", address: "317 North Clark Street, Chicago, IL", rating: "4.1", numRatings: "1100 reviews", priceRange: "$$", isOpenAtNoonWeekdays: true, postedDate: "2025-07-04", details: "<strong>Description:</strong> Riverfront pizzeria looking for servers who thrive in a casual, high-energy environment. Great for individuals who enjoy working with groups and providing a fun, relaxed dining experience.<br><br><strong>Expanded Description:</strong><br><strong>Pizzeria Portofino: Pizza & Paradise!</strong><br>Join our vibrant riverfront team! We seek energetic servers who love a casual, high-energy atmosphere and enjoy serving delicious pizzas and Italian fare to groups enjoying the view. Fun and fast-paced!" },
+            { name: "Server at Chicago Cut Steakhouse", address: "300 North LaSalle Street, Chicago, IL", rating: "4.7", numRatings: "1700 reviews", priceRange: "$$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-14", details: "<strong>Description:</strong> River North steakhouse seeking servers for outdoor seating and power dining. Must be professional, efficient, and able to provide impeccable service in a bustling, high-end environment.<br><br><strong>Expanded Description:</strong><br><strong>Chicago Cut: The Ultimate Steakhouse Experience</strong><br>We are looking for highly professional and efficient servers to join our premier River North steakhouse. If you thrive in a bustling, high-end environment and are committed to impeccable service, apply to be part of our elite team." },
+            { name: "Server at Joe's Seafood, Prime Steak & Stone Crab", address: "60 East Grand Avenue, Chicago, IL", rating: "4.8", numRatings: "2000+ reviews", priceRange: "$$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-08", details: "<strong>Description:</strong> Classic seafood and steakhouse, famous for its stone crab. We are looking for experienced servers who can deliver exceptional service in a traditional, upscale setting. Knowledge of seafood is a plus.<br><br><strong>Expanded Description:</strong><br><strong>Joe's: A Tradition of Taste</strong><br>Join the legendary team at Joe's. We seek experienced servers who can uphold our tradition of exceptional service for classic seafood and prime steaks, especially our famous stone crab. A rewarding role in a timeless establishment." },
+            { name: "Server at Barrio", address: "65 West Kinzie Street, Chicago, IL", rating: "4.2", numRatings: "850 reviews", priceRange: "$$", isOpenAtNoonWeekdays: true, postedDate: "2025-07-01", details: "<strong>Description:</strong> Mexican-inspired restaurant with a vibrant decor and lively bar scene. Seeking servers who are energetic, friendly, and can contribute to a fun and festive atmosphere. Bilingual Spanish/English is a plus.<br><br><strong>Expanded Description:</strong><br><strong>Barrio: Fiesta Every Day!</strong><br>We're looking for energetic servers to join our vibrant Mexican-inspired restaurant. If you love a lively bar scene and contributing to a fun, festive atmosphere, and are bilingual, we want to hear from you!" },
+            { name: "Server at Sunda New Asian", address: "110 West Illinois Street, Chicago, IL", rating: "4.5", numRatings: "1300 reviews", priceRange: "$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-27", details: "<strong>Description:</strong> Southeast Asian cuisine restaurant seeking servers for a trendy and energetic atmosphere. Must be able to explain diverse Asian dishes and provide efficient service in a fast-paced environment.<br><br><strong>Expanded Description:</strong><br><strong>Sunda: Modern Asian, Dynamic Team</strong><br>Join our trendy and energetic team at Sunda New Asian. We seek servers who can articulate diverse Southeast Asian dishes and provide efficient, friendly service in a fast-paced, stylish environment. Experience with Asian cuisine is a plus." },
+            { name: "Server at Spiaggia", address: "980 North Michigan Avenue, Chicago, IL", rating: "4.9", numRatings: "600 reviews", priceRange: "$$$$$", isOpenAtNoonWeekdays: false, postedDate: "2025-07-09", details: "<strong>Description:</strong> Michelin-starred Italian restaurant with lake views. We require sophisticated and highly experienced servers who can provide impeccable service in an ultra-refined setting. Extensive knowledge of Italian cuisine and wine is essential.<br><br><strong>Expanded Description:</strong><br><strong>Spiaggia: The Pinnacle of Italian Dining</strong><br>We are seeking highly sophisticated and experienced servers to join our Michelin-starred team. If you possess extensive knowledge of Italian cuisine and wine, and are committed to delivering impeccable service in an ultra-refined setting with stunning lake views, apply today." },
+            { name: "Server at Beatnik", address: "1604 West Chicago Avenue, Chicago, IL", rating: "4.3", numRatings: "700 reviews", priceRange: "$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-20", details: "<strong>Description:</strong> Eclectic global cuisine restaurant with bohemian decor and live music. Seeking servers who are adaptable, enjoy a unique atmosphere, and can provide friendly service in a vibrant, artistic setting.<br><br><strong>Expanded Description:</strong><br><strong>Beatnik: Global Flavors, Artistic Vibes</strong><br>Join our unique restaurant where eclectic global cuisine meets bohemian charm and live music. We're looking for adaptable servers who enjoy a vibrant, artistic atmosphere and can provide friendly, knowledgeable service." },
+            { name: "Server at Duck Duck Goat", address: "857 West Fulton Market, Chicago, IL", rating: "4.6", numRatings: "1000 reviews", priceRange: "$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-16", details: "<strong>Description:</strong> Chinese-American restaurant with a playful menu and bustling kitchen. We are looking for servers who are quick on their feet, can handle high volume, and enjoy working in a fun, high-energy environment.<br><br><strong>Expanded Description:</strong><br><strong>Duck Duck Goat: Playful & Powerful!</strong><br>Join our high-energy Chinese-American restaurant with a playful menu. We seek servers who are quick on their feet, thrive in a bustling kitchen environment, and enjoy contributing to a fun, fast-paced dining experience." },
+            { name: "Server at Prime & Provisions", address: "222 North La Salle Street, Chicago, IL", rating: "4.5", numRatings: "1100 reviews", priceRange: "$$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-07-01", details: "<strong>Description:</strong> Downtown steakhouse seeking servers for a classic and elegant dining experience. Must be professional, attentive, and able to provide top-tier service to a discerning clientele.<br><br><strong>Expanded Description:</strong><br><strong>Prime & Provisions: Classic Steakhouse Excellence</strong><br>We are looking for professional and attentive servers to join our downtown steakhouse. If you are committed to providing top-tier service in a classic, elegant dining environment for a discerning clientele, we encourage you to apply." },
+            { name: "Server at Piccolo Sogno Due", address: "340 North Halsted Street, Chicago, IL", rating: "4.4", numRatings: "800 reviews", priceRange: "$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-28", details: "<strong>Description:</strong> Sister restaurant to Piccolo Sogno, offering the same great authentic Italian cuisine. We are looking for servers who can provide warm hospitality and contribute to a welcoming, family-like atmosphere.<br><br><strong>Expanded Description:</strong><br><strong>Piccolo Sogno Due: Our Second Home</strong><br>Join the extended family at Piccolo Sogno Due! We seek servers who share our passion for authentic Italian cuisine and can provide warm, genuine hospitality, making every guest feel like part of the family." },
+            { name: "Server at The Press Room", address: "1134 West Washington Boulevard, Chicago, IL", rating: "4.2", numRatings: "500 reviews", priceRange: "$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-07-02", details: "<strong>Description:</strong> Wine bar and restaurant with an extensive wine list. Seeking servers who are knowledgeable about wine, can make recommendations, and provide attentive service in a sophisticated yet relaxed setting.<br><br><strong>Expanded Description:</strong><br><strong>The Press Room: Wine & Dine Expertise</strong><br>We're looking for servers with a passion for wine to join our sophisticated wine bar and restaurant. If you enjoy making recommendations from an extensive wine list and providing attentive service in a relaxed, elegant setting, apply now." },
+            { name: "Server at Formento's", address: "925 West Randolph Street, Chicago, IL", rating: "4.3", numRatings: "950 reviews", priceRange: "$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-26", details: "<strong>Description:</strong> Classic Italian-American restaurant featuring family recipes and a warm ambiance. We are looking for servers who can provide genuine hospitality and make guests feel at home. Experience with traditional Italian dishes is a plus.<br><br><strong>Expanded Description:</strong><br><strong>Formento's: A Taste of Tradition</strong><br>Join our family at Formento's, where classic Italian-American dishes and warm hospitality are at our core. We seek servers who can provide genuine, heartfelt service and make every guest feel like they're dining at Nonna's house." },
+            { name: "Server at Gemini", address: "2075 North Lincoln Avenue, Chicago, IL", rating: "4.1", numRatings: "600 reviews", priceRange: "$$", isOpenAtNoonWeekdays: true, postedDate: "2025-07-05", details: "<strong>Description:</strong> Lincoln Park favorite, serving American comfort food. We are seeking friendly and efficient servers who can provide casual yet attentive service in a popular neighborhood spot. Weekend availability is often required.<br><br><strong>Expanded Description:</strong><br><strong>Gemini: Your Neighborhood Gem</strong><br>Join our beloved Lincoln Park restaurant! We're looking for friendly and efficient servers who can deliver casual yet attentive service in a popular neighborhood spot known for its American comfort food. Weekend availability is a must!" },
+            { name: "Server at Alinea", address: "1723 North Halsted Street, Chicago, IL", rating: "5.0", numRatings: "1000+ reviews", priceRange: "$$$$$", isOpenAtNoonWeekdays: false, postedDate: "2025-07-10", details: "<strong>Description:</strong> Three Michelin-starred restaurant offering an avant-garde dining experience. This role demands exceptional precision, an artistic sensibility, and the highest level of professional service. Experience in world-class fine dining is mandatory.<br><br><strong>Expanded Description:</strong><br><strong>Alinea: A Culinary Masterpiece Awaits</strong><br>We invite only the most dedicated and skilled professionals to join our three Michelin-starred team. This is an unparalleled opportunity to contribute to an avant-garde dining experience, demanding exceptional precision and an artistic approach to service." },
+            { name: "Server at North Pond", address: "2610 North Cannon Drive, Chicago, IL", rating: "4.8", numRatings: "400 reviews", priceRange: "$$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-18", details: "<strong>Description:</strong> Farm-to-table restaurant with a beautiful park setting and seasonal menu. We are looking for servers who are passionate about local ingredients and can provide refined, knowledgeable service in a serene environment.<br><br><strong>Expanded Description:</strong><br><strong>North Pond: Nature's Table</strong><br>Join our serene farm-to-table restaurant nestled in a beautiful park setting. We seek servers who are passionate about local, seasonal ingredients and can provide refined, knowledgeable service that complements our exquisite menu." },
+            { name: "Server at Bavette's Bar & Boeuf", address: "218 West Kinzie Street, Chicago, IL", rating: "4.7", numRatings: "1900 reviews", priceRange: "$$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-11", details: "<strong>Description:</strong> French-inspired steakhouse with a speakeasy feel. This is a very popular spot, seeking servers who can handle high volume while maintaining an intimate and sophisticated dining experience. Strong cocktail knowledge is a plus.<br><br><strong>Expanded Description:</strong><br><strong>Bavette's: Where Steaks Meet Style</strong><br>Join our highly sought-after French-inspired steakhouse with a unique speakeasy ambiance. We're looking for servers who can manage high volume while delivering an intimate and sophisticated dining experience. Strong cocktail and wine knowledge is a significant advantage." },
+            { name: "Server at Indienne", address: "111 West Kinzie Street, Chicago, IL", rating: "4.6", numRatings: "300 reviews", priceRange: "$$$$", isOpenAtNoonWeekdays: false, postedDate: "2025-07-07", details: "<strong>Description:</strong> Modern Indian restaurant offering tasting menus and innovative dishes. We are looking for servers who are articulate, can explain complex culinary concepts, and provide refined service in a contemporary setting.<br><br><strong>Expanded Description:</strong><br><strong>Indienne: A New Era of Indian Cuisine</strong><br>Be part of Chicago's exciting modern Indian dining scene. We seek articulate servers who can guide guests through our innovative tasting menus and provide refined service in a contemporary, elegant setting. A passion for culinary exploration is a plus." },
+            { name: "Server at Adorn Restaurant & Bar", address: "120 East Delaware Place, Chicago, IL", rating: "4.5", numRatings: "400 reviews", priceRange: "$$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-22", details: "<strong>Description:</strong> Located within the Four Seasons Hotel, Adorn is a contemporary American restaurant. We require elegant and professional servers who can deliver impeccable service consistent with a luxury hotel brand.<br><br><strong>Expanded Description:</strong><br><strong>Adorn: Four Seasons Luxury</strong><br>Join the prestigious team at Adorn, located in the Four Seasons Hotel. We seek elegant and professional servers who are dedicated to delivering impeccable service, upholding the highest standards of a luxury hotel brand." },
+            { name: "Server at Ema", address: "74 West Illinois Street, Chicago, IL", rating: "4.4", numRatings: "1100 reviews", priceRange: "$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-07-01", details: "<strong>Description:</strong> Mediterranean small plates restaurant, light and fresh. Seeking servers who can guide guests through a shared dining experience and provide friendly, efficient service in a bright and airy space.<br><br><strong>Expanded Description:</strong><br><strong>Ema: Fresh Flavors, Shared Moments</strong><br>Join our bright and airy Mediterranean small plates restaurant. We're looking for friendly, efficient servers who can guide guests through a delightful shared dining experience, emphasizing fresh ingredients and a relaxed atmosphere." },
+            { name: "Server at Proxi", address: "565 West Randolph Street, Chicago, IL", rating: "4.3", numRatings: "800 reviews", priceRange: "$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-29", details: "<strong>Description:</strong> Global street food-inspired restaurant with vibrant flavors. We are looking for servers who are enthusiastic, knowledgeable about diverse cuisines, and can provide a lively and engaging dining experience.<br><br><strong>Expanded Description:</strong><br><strong>Proxi: Global Tastes, Local Talent</strong><br>Join our team exploring global street food-inspired cuisine. We seek enthusiastic servers who are knowledgeable about diverse culinary traditions and can provide a lively, engaging dining experience for our adventurous guests." },
+            { name: "Server at J Parker", address: "1816 North Clark Street, Chicago, IL", rating: "4.0", numRatings: "700 reviews", priceRange: "$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-07-03", details: "<strong>Description:</strong> Rooftop bar and restaurant with stunning city views. Seeking servers who can handle a high-volume, dynamic environment and provide excellent service while guests enjoy the panoramic Chicago skyline.<br><br><strong>Expanded Description:</strong><br><strong>J Parker: Views & Vibes</strong><br>Work at one of Chicago's most iconic rooftop destinations! We're looking for servers who thrive in a high-volume, dynamic environment and can provide excellent service while guests soak in panoramic city views. Fast-paced and exciting!" },
+            { name: "Server at Somerset", address: "1118 North State Street, Chicago, IL", rating: "4.2", numRatings: "600 reviews", priceRange: "$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-06-24", details: "<strong>Description:</strong> Gold Coast restaurant serving American cuisine in a stylish decor. We are looking for servers who are polished, attentive, and can contribute to a sophisticated yet approachable dining atmosphere.<br><br><strong>Expanded Description:</strong><br><strong>Somerset: Gold Coast Glamour</strong><br>Join our stylish Gold Coast restaurant. We seek polished and attentive servers who can contribute to a sophisticated yet approachable dining atmosphere, delivering exceptional American cuisine and hospitality." },
+            { name: "Server at Quality Crab & Oyster Bah", address: "1962 North Halsted Street, Chicago, IL", rating: "4.3", numRatings: "750 reviews", priceRange: "$$", isOpenAtNoonWeekdays: true, postedDate: "2025-07-06", details: "<strong>Description:</strong> Seafood shack offering fresh oysters and a casual, fun atmosphere. Seeking servers who are energetic, knowledgeable about seafood, and can provide friendly, efficient service in a lively setting.<br><br><strong>Expanded Description:</strong><br><strong>Quality Crab & Oyster Bah: Get Shucking!</strong><br>Join our lively seafood shack! We're looking for energetic servers who are passionate about fresh oysters and seafood, and can provide friendly, efficient service in a casual, fun atmosphere. Dive in!" },
+            { name: "Server at Sushi-san", address: "63 West Grand Avenue, Chicago, IL", rating: "4.4", numRatings: "900 reviews", priceRange: "$$$", isOpenAtNoonWeekdays: true, postedDate: "2025-07-01", details: "<strong>Description:</strong> High-energy sushi spot with late-night dining. We are looking for servers who are quick, efficient, and can thrive in a fast-paced, bustling environment. Sushi knowledge is a plus.<br><br><strong>Expanded Description:</strong><br><strong>Sushi-san: Roll with Us!</strong><br>Join our high-energy sushi spot! We seek quick and efficient servers who thrive in a fast-paced, bustling environment with late-night dining. If you have a passion for sushi and a knack for speed, we want you!" }
         ];
 
-        let map;
-        let geocoder;
-        let directionsService;
-        let currentInfoWindow = null;
         let userLocation = null;
-        let userLocationMarker = null; // To store the user's location marker (real or fallback)
-        let geolocationMessageDiv;
-        let distanceCircles = []; // Array to store the distance circles
-        let ringTimeMarkers = []; // Array to store markers for walking times on rings
-        let watchId = null; // To store the watchPosition ID
-        // jobMarkers array is no longer needed as markers are stored directly in jobListings
-        // let jobMarkers = [];
+        let userLocationMarker = null;
+        let directionsService = null;
+        let infoWindow = null;
+        let map = null;
+        const circles = []; // To store the circle objects
+        const circleLabels = []; // To store markers for circle labels
+        const jobMarkers = []; // To store all job markers for filtering
 
-        // Slider elements
-        let minDaysAgoSlider;
-        let maxDaysAgoSlider;
-        let minDaysAgoValueSpan;
-        let maxDaysAgoValueSpan;
-
-        // Debounce function
-        function debounce(func, delay) {
-            let timeout;
-            return function(...args) {
-                const context = this;
-                clearTimeout(timeout);
-                timeout = setTimeout(() => func.apply(context, args), delay);
-            };
+        // Function to convert miles to meters
+        function milesToMeters(miles) {
+            return miles * 1609.34;
         }
 
-        /**
-         * Displays a message in the geolocation message div.
-         * @param {string} message - The message to display.
-         * @param {string} type - The type of alert (e.g., 'warning', 'danger').
-         */
-        function displayGeolocationMessage(message, type) {
-            if (geolocationMessageDiv) {
-                geolocationMessageDiv.textContent = message;
-                geolocationMessageDiv.className = `alert alert-${type}`;
-                geolocationMessageDiv.classList.remove('d-none');
-            }
-        }
+        // Function to draw concentric circles around a location
+        function drawCircles(centerLocation) {
+            // Clear existing circles
+            circles.forEach(circle => circle.setMap(null));
+            circles.length = 0;
+            circleLabels.forEach(label => label.setMap(null));
+            circleLabels.length = 0;
 
-        /**
-         * Hides the geolocation message div.
-         */
-        function hideGeolocationMessage() {
-            if (geolocationMessageDiv) {
-                geolocationMessageDiv.classList.add('d-none');
-            }
-        }
+            const milesPerMinute = 1 / 20; // 3 mph = 1 mile per 20 minutes
 
-        /**
-         * Draws transparent blue rings around a given center point.
-         * This function is now only called once to create the circles and markers.
-         * @param {google.maps.LatLngLiteral} center - The center point for the rings (user's location).
-         */
-        function drawDistanceRings(center) {
-            // Clear any existing circles and time markers from the map (only needed if redrawing from scratch)
-            // For initial draw, these arrays should be empty.
-            distanceCircles.forEach(circle => circle.setMap(null));
-            distanceCircles = [];
-            ringTimeMarkers.forEach(marker => marker.setMap(null));
-            ringTimeMarkers = [];
-
-            const maxDistanceMiles = 4; // Max distance for rings
-            const halfMileInMeters = 804.672; // 0.5 miles in meters
-            const avgWalkingSpeedMph = 3.1; // Average walking speed in miles per hour
-
-            const numRings = Math.floor(maxDistanceMiles / 0.5);
-
-            // Define alpha ranges for fill and stroke
-            const baseFillAlpha = 0.025; // Starting transparency for fill (lighter blue)
-            const maxFillAlpha = 0.2;   // Ending transparency for fill (darker blue)
-            const fillAlphaIncrement = (maxFillAlpha - baseFillAlpha) / numRings;
-
-            const baseStrokeAlpha = 0.1; // Starting transparency for stroke (lighter grey)
-            const maxStrokeAlpha = 1.0;  // Ending transparency for stroke (black)
-            const strokeAlphaIncrement = (maxStrokeAlpha - baseStrokeAlpha) / numRings;
-
-            for (let i = 1; i <= numRings; i++) {
-                const currentRadius = i * halfMileInMeters;
-                const currentFillAlpha = baseFillAlpha + (i - 1) * fillAlphaIncrement;
-                const currentStrokeAlpha = baseStrokeAlpha + (i - 1) * strokeAlphaIncrement;
-
-                const fillColor = `rgba(0, 0, 255, ${currentFillAlpha})`; // Blue color with increasing opacity
-                const strokeColor = `rgba(0, 0, 0, ${currentStrokeAlpha})`; // Black color with increasing opacity
+            for (let i = 0.5; i <= 4; i += 0.5) {
+                const radiusMeters = milesToMeters(i);
+                // Increased transparency by half: fillOpacity from 0.1-0.5 to 0.05-0.25
+                const fillOpacity = 0.05 + (i / 4) * 0.2;
+                // Increased stroke transparency by half: strokeOpacity from 0.5-1.0 to 0.25-0.5
+                const strokeOpacity = 0.25 + (i / 4) * 0.25;
+                const strokeColorValue = Math.floor(255 * (i / 4)); // Grey to black for border
+                const strokeColor = `rgb(${strokeColorValue}, ${strokeColorValue}, ${strokeColorValue})`;
 
                 const circle = new google.maps.Circle({
-                    strokeColor: strokeColor, // Dynamic stroke color (grey to black)
-                    strokeOpacity: 0.8,
-                    strokeWeight: 1,
-                    fillColor: fillColor,
-                    fillOpacity: currentFillAlpha, // Dynamic fill opacity
+                    strokeColor: strokeColor,
+                    strokeOpacity: strokeOpacity,
+                    strokeWeight: 2,
+                    fillColor: `#0000FF`, // Blue color
+                    fillOpacity: fillOpacity,
                     map: map,
-                    center: center,
-                    radius: currentRadius
+                    center: centerLocation,
+                    radius: radiusMeters,
                 });
-                distanceCircles.push(circle);
+                circles.push(circle);
 
-                // Calculate approximate walking time for this ring
-                const distanceMiles = i * 0.5;
-                const walkingTimeMinutes = Math.round((distanceMiles / avgWalkingSpeedMph) * 60);
+                // Add labels at N, S, E, W edges
+                const estimatedMinutes = Math.round(i * 20); // Estimated minutes to walk 'i' miles
 
-                // Add markers for walking time at N, S, E, W edges
-                const headings = {
-                    'N': 0,
-                    'E': 90,
-                    'S': 180,
-                    'W': 270
-                };
+                // North
+                const northPoint = google.maps.geometry.spherical.computeOffset(centerLocation, radiusMeters, 0);
+                const northLabel = new google.maps.Marker({
+                    position: northPoint,
+                    map: map,
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE, // Use a small circle for the label marker itself
+                        scale: 0, // Make it invisible
+                    },
+                    label: {
+                        text: `${estimatedMinutes} min`,
+                        color: 'black',
+                        fontSize: '10px',
+                        fontWeight: 'bold',
+                    },
+                });
+                circleLabels.push(northLabel);
 
-                for (const direction in headings) {
-                    const heading = headings[direction];
-                    const point = google.maps.geometry.spherical.computeOffset(
-                        new google.maps.LatLng(center.lat, center.lng),
-                        currentRadius,
-                        heading
-                    );
+                // East
+                const eastPoint = google.maps.geometry.spherical.computeOffset(centerLocation, radiusMeters, 90);
+                const eastLabel = new google.maps.Marker({
+                    position: eastPoint,
+                    map: map,
+                    icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
+                    label: {
+                        text: `${estimatedMinutes} min`,
+                        color: 'black',
+                        fontSize: '10px',
+                        fontWeight: 'bold',
+                    },
+                });
+                circleLabels.push(eastLabel);
 
-                    const timeMarker = new google.maps.Marker({
-                        map: map,
-                        position: point,
-                        icon: {
-                            path: google.maps.SymbolPath.CIRCLE, // Small circle for the marker
-                            scale: 0, // Make the icon invisible
-                            fillOpacity: 0,
-                            strokeOpacity: 0
-                        },
-                        label: {
-                            text: `${walkingTimeMinutes}`, // Removed 'min'
-                            color: 'black', // Label color
-                            fontSize: '10px',
-                            fontWeight: 'bold',
-                            className: 'distance-label'
-                        }
-                    });
-                    ringTimeMarkers.push(timeMarker);
-                }
+                // South
+                const southPoint = google.maps.geometry.spherical.computeOffset(centerLocation, radiusMeters, 180);
+                const southLabel = new google.maps.Marker({
+                    position: southPoint,
+                    map: map,
+                    icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
+                    label: {
+                        text: `${estimatedMinutes} min`,
+                        color: 'black',
+                        fontSize: '10px',
+                        fontWeight: 'bold',
+                    },
+                });
+                circleLabels.push(southLabel);
+
+                // West
+                const westPoint = google.maps.geometry.spherical.computeOffset(centerLocation, radiusMeters, 270);
+                const westLabel = new google.maps.Marker({
+                    position: westPoint,
+                    map: map,
+                    icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
+                    label: {
+                        text: `${estimatedMinutes} min`,
+                        color: 'black',
+                        fontSize: '10px',
+                        fontWeight: 'bold',
+                    },
+                });
+                circleLabels.push(westLabel);
             }
         }
 
-        /**
-         * Updates the positions of existing distance rings and their labels.
-         * This function is called on subsequent location updates.
-         * @param {google.maps.LatLngLiteral} newCenter - The new center point for the rings (user's updated location).
-         */
-        function updateDistanceRings(newCenter) {
-            const halfMileInMeters = 804.672; // 0.5 miles in meters
+        // Function to filter markers based on days posted
+        function filterMarkers() {
+            const minDays = parseInt(document.getElementById('minDays').value);
+            const maxDays = parseInt(document.getElementById('maxDays').value);
 
-            distanceCircles.forEach((circle, i) => {
-                circle.setCenter(newCenter);
-            });
+            document.getElementById('minDaysValue').textContent = `${minDays} days`;
+            document.getElementById('maxDaysValue').textContent = `${maxDays} days`;
 
-            ringTimeMarkers.forEach((marker, i) => {
-                const ringIndex = Math.floor(i / 4); // Each ring has 4 markers (N, E, S, W)
-                const headingIndex = i % 4; // 0=N, 1=E, 2=S, 3=W
-                const currentRadius = (ringIndex + 1) * halfMileInMeters;
+            jobMarkers.forEach(markerData => {
+                const job = markerData.job;
+                const marker = markerData.marker;
 
-                const headings = [0, 90, 180, 270]; // N, E, S, W
-                const heading = headings[headingIndex];
+                const today = new Date();
+                const posted = new Date(job.postedDate);
+                const diffTime = Math.abs(today - posted);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-                const newPoint = google.maps.geometry.spherical.computeOffset(
-                    new google.maps.LatLng(newCenter.lat, newCenter.lng),
-                    currentRadius,
-                    heading
-                );
-                marker.setPosition(newPoint);
+                if (diffDays >= minDays && diffDays <= maxDays) {
+                    marker.setVisible(true);
+                } else {
+                    marker.setVisible(false);
+                }
             });
         }
 
-        /**
-         * Initializes the Google Map and geocoder.
-         * This function is called by the Google Maps API script once it's loaded.
-         */
+        // Initialize the map
         function initMap() {
-            consoleOutputDiv = document.getElementById('console-output'); // Assign the console output div
-            geolocationMessageDiv = document.getElementById('geolocation-message');
-            const centerMapButton = document.getElementById('center-map-button');
-
-            // Get slider elements
-            minDaysAgoSlider = document.getElementById('min-days-ago');
-            maxDaysAgoSlider = document.getElementById('max-days-ago');
-            minDaysAgoValueSpan = document.getElementById('min-days-ago-value');
-            maxDaysAgoValueSpan = document.getElementById('max-days-ago-value');
-
-            // Set initial slider values
-            minDaysAgoValueSpan.textContent = minDaysAgoSlider.value;
-            maxDaysAgoValueSpan.textContent = maxDaysAgoSlider.value;
-
-            // Debounced filter function
-            const debouncedFilterJobs = debounce(filterJobsByDaysPosted, 300); // 300ms debounce
-
-            // Add event listeners for sliders
-            minDaysAgoSlider.addEventListener('input', () => {
-                // Ensure min is not greater than max
-                if (parseInt(minDaysAgoSlider.value) > parseInt(maxDaysAgoSlider.value)) {
-                    minDaysAgoSlider.value = maxDaysAgoSlider.value;
-                }
-                minDaysAgoValueSpan.textContent = minDaysAgoSlider.value;
-                debouncedFilterJobs();
-            });
-
-            maxDaysAgoSlider.addEventListener('input', () => {
-                // Ensure max is not less than min
-                if (parseInt(maxDaysAgoSlider.value) < parseInt(minDaysAgoSlider.value)) {
-                    maxDaysAgoSlider.value = minDaysAgoSlider.value;
-                }
-                maxDaysAgoValueSpan.textContent = maxDaysAgoSlider.value;
-                debouncedFilterJobs();
-            });
-
-
-            // Initialize the map centered around Chicago
+            console.log("Initializing map...");
+            // Set the center of the map to Chicago
+            const chicago = { lat: 41.8781, lng: -87.6298 };
             map = new google.maps.Map(document.getElementById("map"), {
-                center: { lat: 41.8781, lng: -87.6298 }, // Default to Chicago coordinates
-                zoom: 10,
-                gestureHandling: 'greedy' // Enable one-finger pan/zoom on touch devices
+                zoom: 12, // Zoom level
+                center: chicago,
+                gestureHandling: 'greedy', // Allow one-finger pan on mobile
+                mapTypeControl: false, // Disable map type control
+                streetViewControl: false, // Disable street view control
+                fullscreenControl: false, // Disable fullscreen control
             });
 
-            // Initialize the Geocoder service
-            geocoder = new google.maps.Geocoder();
             directionsService = new google.maps.DirectionsService();
+            infoWindow = new google.maps.InfoWindow();
 
-            // Event listener for the "Center Map on My Location" button
-            centerMapButton.addEventListener('click', () => {
-                if (userLocation) {
-                    map.setCenter(userLocation);
-                    map.setZoom(14); // Optional: zoom in a bit when centering on user
-                } else {
-                    displayGeolocationMessage("Your location is not available to center the map.", "warning");
+            // Close info window when clicking on the map
+            map.addListener('click', (event) => {
+                // Only close if the click wasn't on a marker
+                if (event.placeId) { // Clicked on a place (like a business on the map)
+                    // Do nothing, let default behavior or marker listener handle it
+                } else if (event.latLng) { // Clicked on the map itself
+                    infoWindow.close();
                 }
             });
 
-            // Try to get user's current location using watchPosition
+
+            // Get user's current location
             if (navigator.geolocation) {
-                displayGeolocationMessage("Attempting to get your location...", "warning");
-                watchId = navigator.geolocation.watchPosition(
+                navigator.geolocation.getCurrentPosition(
                     (position) => {
-                        hideGeolocationMessage(); // Hide message on success
                         userLocation = {
                             lat: position.coords.latitude,
                             lng: position.coords.longitude,
                         };
+                        console.log("User location obtained:", userLocation);
 
-                        // Create or update user location marker
-                        if (!userLocationMarker) {
-                            userLocationMarker = new google.maps.Marker({
-                                map: map,
-                                position: userLocation,
-                                title: "Your Location",
-                                icon: {
-                                    path: google.maps.SymbolPath.CIRCLE,
-                                    scale: 8,
-                                    fillColor: '#4285F4', // Google Blue
-                                    fillOpacity: 0.8,
-                                    strokeWeight: 2,
-                                    strokeColor: '#FFFFFF'
-                                },
-                                label: {
-                                    text: "You",
-                                    color: 'white',
-                                    fontSize: '10px',
-                                    fontWeight: 'bold'
-                                }
-                            });
-                            map.setCenter(userLocation); // Center map on initial location
-                            drawDistanceRings(userLocation); // Draw rings for the first time
-                            // Initial processing of job listings after user location is found
-                            processAllJobListingsAndCreateMarkers();
-                        } else {
-                            userLocationMarker.setPosition(userLocation); // Just update position
-                            updateDistanceRings(userLocation); // Update existing rings
-                            // Re-calculate walking times in info windows if one is open
-                            // This would require re-opening the info window or updating its content directly
-                            // For simplicity, we'll rely on the user re-clicking the marker to see updated times.
-                        }
+                        userLocationMarker = new google.maps.Marker({
+                            position: userLocation,
+                            map: map,
+                            title: "Your Location",
+                            icon: {
+                                path: google.maps.SymbolPath.CIRCLE,
+                                scale: 8,
+                                fillColor: '#007BFF', // Bright blue
+                                fillOpacity: 0.9,
+                                strokeWeight: 2,
+                                strokeColor: '#FFFFFF', // White border
+                            },
+                            zIndex: 999 // Ensure it's on top
+                        });
 
-                        centerMapButton.disabled = false; // Enable button once location is known
+                        // Center map on user's location initially
+                        map.setCenter(userLocation);
+
+                        // Draw concentric circles around user's location
+                        drawCircles(userLocation);
                     },
                     (error) => {
-                        // Handle geolocation errors
-                        let errorMessage = "Error getting your location. ";
-                        switch (error.code) {
-                            case error.PERMISSION_DENIED:
-                                errorMessage += "Permission denied. Please enable location services for this site in your browser settings. Note: Geolocation often requires HTTPS.";
-                                break;
-                            case error.POSITION_UNAVAILABLE:
-                                errorMessage += "Your location information is unavailable.";
-                                break;
-                            case error.TIMEOUT:
-                                errorMessage += "The request to get user location timed out.";
-                                break;
-                            default:
-                                errorMessage += "An unknown error occurred.";
-                                break;
-                        }
-                        displayGeolocationMessage(errorMessage, "danger");
-                        console.error("Geolocation error:", error);
-                        centerMapButton.disabled = true; // Disable button if location not available
-
-                        // If geolocation fails, still process job listings using a default map center
-                        if (jobListings[0].marker === undefined) { // Check if markers haven't been created yet
-                            processAllJobListingsAndCreateMarkers();
-                        }
+                        console.warn("Error getting user location:", error.message);
+                        // Fallback to Chicago if location access is denied or fails
+                        map.setCenter(chicago);
                     },
-                    {
-                        enableHighAccuracy: true, // Request high accuracy
-                        timeout: 10000, // 10 seconds timeout for each attempt
-                        maximumAge: 60000 // Accept cached position up to 60 seconds old
-                    }
+                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
                 );
             } else {
-                displayGeolocationMessage("Geolocation is not supported by your browser. Your location cannot be displayed.", "danger");
                 console.warn("Geolocation is not supported by this browser.");
-                centerMapButton.disabled = true; // Disable button if geolocation not supported
-                // Process job listings immediately if geolocation is not supported
-                processAllJobListingsAndCreateMarkers();
+                map.setCenter(chicago);
             }
 
-            // Close info window when clicking on the map itself
-            map.addListener('click', () => {
-                if (currentInfoWindow) {
-                    currentInfoWindow.close();
-                    currentInfoWindow = null; // Reset to null after closing
-                }
-            });
-        }
+            // Loop through each job location and add a marker
+            jobLocations.forEach((job) => {
+                const geocoder = new google.maps.Geocoder(); // Create a new geocoder for each request
+                geocoder.geocode({ address: job.address }, (results, status) => {
+                    if (status === "OK" && results[0]) {
+                        // Calculate days ago
+                        const today = new Date();
+                        const posted = new Date(job.postedDate);
+                        const diffTime = Math.abs(today - posted);
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        const daysAgoText = `${diffDays}d`; // Format as "Xd"
 
-        /**
-         * Processes all job listings, geocodes their addresses, and creates markers.
-         * Markers are initially hidden and their visibility is controlled by filterJobsByDaysPosted.
-         */
-        async function processAllJobListingsAndCreateMarkers() {
-            for (const listing of jobListings) {
-                // Attempt to geocode the address
-                try {
-                    const response = await geocoder.geocode({ address: listing.address });
+                        // Custom SVG for a traditional pin marker
+                        const pinSvg = (fillColor) => `
+                            <svg width="24" height="36" viewBox="0 0 24 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 0C7.02944 0 3 4.02944 3 9C3 15.75 12 24 12 24C12 24 21 15.75 21 9C21 4.02944 16.9706 0 12 0ZM12 14C9.79086 14 8 12.2091 8 10C8 7.79086 9.79086 6 12 6C14.2091 6 16 7.79086 16 10C16 12.2091 14.2091 14 12 14Z" fill="${fillColor}"/>
+                            </svg>
+                        `;
 
-                    if (response.results && response.results.length > 0) {
-                        listing.latLng = response.results[0].geometry.location; // Store LatLng
-                        // Create marker but set map to null initially
-                        listing.marker = createJobMarker(listing, userLocation);
-                    } else {
-                        console.warn(`Could not find location for: ${listing.address}`);
-                    }
-                } catch (error) {
-                    console.error(`Geocoding error for ${listing.address}:`, error);
-                }
-            }
-            // After all markers are created (and their latLng stored), apply initial filter
-            filterJobsByDaysPosted();
-        }
-
-        /**
-         * Extracts the number of days from a "Posted X days ago" string.
-         * @param {string} dateString - The string like "Posted 1 day ago" or "Posted 15 days ago".
-         * @returns {number|string} The number of days as an integer, or 'N/A' if not found.
-         */
-        function extractDaysAgo(dateString) {
-            const match = dateString.match(/Posted (\d+) days? ago/);
-            if (match && match[1]) {
-                return parseInt(match[1], 10);
-            }
-            return 'N/A';
-        }
-
-        /**
-         * Filters job listings based on the selected "days ago posted" range
-         * and updates the map markers accordingly.
-         */
-        function filterJobsByDaysPosted() {
-            const minDays = parseInt(minDaysAgoSlider.value, 10);
-            const maxDays = parseInt(maxDaysAgoSlider.value, 10);
-
-            jobListings.forEach(listing => {
-                if (listing.marker) { // Ensure marker exists
-                    const daysAgo = extractDaysAgo(listing.datePosted);
-                    const isVisible = (typeof daysAgo === 'number' && daysAgo >= minDays && daysAgo <= maxDays);
-
-                    listing.marker.setMap(isVisible ? map : null);
-
-                    // If the currently open info window's marker is hidden, close the info window
-                    if (currentInfoWindow && currentInfoWindow.getAnchor() === listing.marker && !isVisible) {
-                        currentInfoWindow.close();
-                        currentInfoWindow = null;
-                    }
-                }
-            });
-        }
-
-        /**
-         * Creates a marker for a job listing with an info window and a custom label.
-         * This function now only *creates* the marker and its info window, it doesn't add it to the map initially.
-         * @param {object} listing - The full job listing object containing all details.
-         * @param {google.maps.LatLngLiteral} userLoc - User's current location for directions.
-         * @returns {google.maps.Marker} The created marker object.
-         */
-        function createJobMarker(listing, userLoc) {
-            let labelText = '';
-            const daysAgo = extractDaysAgo(listing.datePosted);
-
-            // Construct label text including price range, rating, and days ago posted
-            if (listing.priceRange && listing.rating) {
-                labelText = `${listing.priceRange}, ${listing.rating}`;
-                if (daysAgo !== 'N/A') {
-                    labelText += `, ${daysAgo}d`; // Add 'd' for days
-                }
-            } else if (listing.priceRange) {
-                labelText = listing.priceRange;
-                if (daysAgo !== 'N/A') {
-                    labelText += `, ${daysAgo}d`;
-                }
-            } else if (listing.rating) {
-                labelText = String(listing.rating);
-                if (daysAgo !== 'N/A') {
-                    labelText += `, ${daysAgo}d`;
-                }
-            } else if (daysAgo !== 'N/A') {
-                labelText = `${daysAgo}d`;
-            }
-
-
-            // Determine marker color based on openAtNoonWeekday property
-            const markerColor = listing.openAtNoonWeekday ? '#008000' : '#EA4335'; // Green or Red
-
-            const marker = new google.maps.Marker({
-                // map: map, // Do NOT set map here initially
-                position: listing.latLng, // Use the pre-geocoded location
-                title: `${listing.job} at ${listing.company}`,
-                icon: {
-                    path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW, // Using a pin-like symbol
-                    fillColor: markerColor, // Set color based on condition
-                    fillOpacity: 1,
-                    strokeColor: '#000000',
-                    strokeWeight: 1,
-                    scale: 5, // Adjust size of the pin
-                    rotation: 180, // Rotate to point downwards
-                    anchor: new google.maps.Point(0, 8), // Adjust anchor to base of the pin
-                },
-                label: {
-                    text: labelText,
-                    color: 'black', // Label color is black
-                    fontSize: '12px',
-                    fontWeight: 'bold'
-                }
-            });
-
-            // The walking time calculation is only done when the info window is opened
-            // to avoid calculating for all markers upfront, which would be slow.
-            marker.addListener("click", async () => {
-                // Close any currently open info window
-                if (currentInfoWindow) {
-                    currentInfoWindow.close();
-                }
-
-                let walkingTime = 'Calculating...';
-                // Only calculate walking time if user location is available
-                if (userLoc) {
-                    try {
-                        const directionsRequest = {
-                            origin: userLoc,
-                            destination: listing.latLng, // Use stored LatLng
-                            travelMode: google.maps.TravelMode.WALKING
+                        const markerIcon = {
+                            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(pinSvg(job.isOpenAtNoonWeekdays ? '#22C55E' : '#EF4444')), // Green for open, Red for closed
+                            scaledSize: new google.maps.Size(24, 36), // Size of the icon
+                            anchor: new google.maps.Point(12, 36) // Point of the icon which will correspond to marker's position
                         };
-                        const directionsResponse = await directionsService.route(directionsRequest);
 
-                        if (directionsResponse.routes && directionsResponse.routes.length > 0) {
-                            walkingTime = directionsResponse.routes[0].legs[0].duration.text;
-                        } else {
-                            walkingTime = 'N/A (No walking route found)';
-                        }
-                    } catch (e) {
-                        console.error("Error calculating directions:", e);
-                        walkingTime = 'N/A (Error calculating route)';
+                        const markerLabel = {
+                            text: daysAgoText, // Only days ago in the label
+                            color: 'black', // Black lettering
+                            fontWeight: 'bold',
+                            fontSize: '12px',
+                            className: 'marker-label', // Custom class for styling if needed
+                        };
+
+                        const marker = new google.maps.Marker({
+                            map: map,
+                            position: results[0].geometry.location,
+                            title: job.name,
+                            icon: markerIcon,
+                            label: markerLabel,
+                        });
+
+                        // Store marker along with its job data for filtering
+                        jobMarkers.push({ marker: marker, job: job, diffDays: diffDays });
+
+                        // Add a click listener to open an info window
+                        marker.addListener("click", () => {
+                            infoWindow.close(); // Close any currently open info window
+
+                            // Extract restaurant name for Google Maps search link
+                            const restaurantName = job.name.split(' at ')[1] || job.name;
+                            const googleMapsSearchUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurantName + ' ' + job.address)}`;
+
+                            let infoContent = `<div class="info-window-content">` +
+                                `<strong><i>Company:</i></strong> ${restaurantName}<br>` +
+                                `<strong><i>Address:</i></strong> ${job.address}<br>` +
+                                `<div class="meta-info">` +
+                                `Rating: ${job.rating}/5 (${job.numRatings}) | Price Range: ${job.priceRange} | Posted: ${daysAgoText}` +
+                                `</div>` +
+                                `<p><strong><i>Description:</i></strong> ${job.details.split('<br><br><strong>Expanded Description:</strong>')[0].replace('<strong>Description:</strong> ', '')}</p>` +
+                                `<p><strong><i>Expanded Description:</i></strong> ${job.details.split('<br><br><strong>Expanded Description:</i></strong>')[1]}</p>` +
+                                `<div id="walking-time">Calculating walking time...</div>` + // Placeholder for walking time
+                                `<p><a href="${googleMapsSearchUrl}" target="_blank" class="text-blue-600 hover:underline">View on Google Maps for reviews</a></p>` +
+                                `</div>`;
+
+                            infoWindow.setContent(infoContent);
+                            infoWindow.open(map, marker);
+
+                            // Calculate walking time if user location is available
+                            if (userLocation) {
+                                const request = {
+                                    origin: userLocation,
+                                    destination: results[0].geometry.location,
+                                    travelMode: google.maps.TravelMode.WALKING
+                                };
+
+                                directionsService.route(request, (response, status) => {
+                                    if (status === 'OK') {
+                                        const route = response.routes[0];
+                                        const leg = route.legs[0];
+                                        const durationText = leg.duration.text;
+                                        document.getElementById('walking-time').innerText = `Walking time: ${durationText}`;
+                                    } else {
+                                        console.error('Directions request failed due to ' + status);
+                                        document.getElementById('walking-time').innerText = 'Walking time: N/A';
+                                    }
+                                });
+                            } else {
+                                document.getElementById('walking-time').innerText = 'Walking time: Enable location for calculation.';
+                            }
+                        });
+                        // After adding all markers, apply initial filter
+                        filterMarkers();
+                    } else {
+                        console.error("Geocode failed for address: " + job.address + " with status: " + status);
                     }
-                } else {
-                    walkingTime = 'N/A (Your location not available)';
-                }
-
-                let descriptionContent = '';
-                const splitKeyword = 'NOW HIRING';
-
-                if (listing.description && listing.description.includes(splitKeyword)) {
-                    const parts = listing.description.split(splitKeyword);
-                    const mainDescription = parts[0].trim();
-                    const expandedDescription = splitKeyword + parts.slice(1).join(splitKeyword).trim();
-
-                    descriptionContent = `
-                        <p><strong><em>Description:</em></strong> ${mainDescription}</p>
-                        <p><br><strong><em>Expanded Description:</em></strong> ${expandedDescription}</p>
-                    `;
-                } else {
-                    descriptionContent = `<p><strong><em>Description:</em></strong> ${listing.description || 'No description available.'}</p>`;
-                }
-
-                const infoWindowContent = `
-                    <div class="info-window-content">
-                        <h3>${listing.job}</h3>
-                        <p><strong><em>Company:</em></strong> ${listing.company}</p>
-                        <p><strong><em>Address:</em></strong> ${listing.address}</p>
-                        <p><strong><em>Rating:</em></strong> ${listing.rating || 'N/A'} (${listing.numRatings || 0} reviews)</p>
-                        <p><strong><em>Price Range:</em></strong> ${listing.priceRange || 'N/A'}</p>
-                        <p><strong><em>Posted:</em></strong> ${listing.datePosted || 'N/A'}</p>
-                        <p><strong><em>Walking Time from Your Location:</em></strong> ${walkingTime}</p>
-                        ${descriptionContent}
-                    </div>
-                `;
-
-                const infoWindow = new google.maps.InfoWindow({
-                    content: infoWindowContent,
                 });
-
-                infoWindow.open(map, marker);
-                currentInfoWindow = infoWindow; // Set the newly opened info window as current
             });
-            return marker; // Return the created marker object
+
+            // Add event listeners for sliders
+            document.getElementById('minDays').addEventListener('input', filterMarkers);
+            document.getElementById('maxDays').addEventListener('input', filterMarkers);
         }
     </script>
-    <!-- Google Maps JavaScript API script -->
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCnmB1YdRWQnp4pdFRymNhkOozpvZMsY_I&libraries=places,geometry,routes&callback=initMap"></script>
+    <!-- Load the Google Maps JavaScript API with your API key and callback -->
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCnmB1YdRWQnp4pdFRymNhkOozpvZMsY_I&libraries=geometry&callback=initMap"></script>
 </body>
 </html>
