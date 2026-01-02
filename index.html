@@ -1,13 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Indy Hiring - 10mi Preload</title>
+    <title>Indy Job Hunt Map</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body { margin: 0; padding: 0; height: 100vh; font-family: sans-serif; }
         #map { height: 100%; width: 100%; }
-        .restaurant-label { background: white; border: 1px solid #333; padding: 2px 5px; border-radius: 3px; font-weight: bold; font-size: 11px; }
+        
+        /* Permanent Label Styling */
+        .label-style { background: white; border: 1px solid #333; padding: 2px 5px; border-radius: 3px; font-weight: bold; font-size: 11px; }
+        .star-label { border: 1px solid #007AFF; color: #007AFF; }
+
+        /* The Blue Dot (User) */
         .user-dot { background: #007AFF; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 8px rgba(0,0,0,0.4); }
     </style>
 </head>
@@ -18,15 +23,33 @@
     <script src="https://unpkg.com/leaflet-edgebuffer@1.2.0/src/leaflet.edgebuffer.js"></script>
 
     <script>
-        // 1. Center map on Monument Circle
-        const map = L.map('map').setView([39.7684, -86.1581], 14);
+        const map = L.map('map').setView([39.7715, -86.153], 15);
 
-        // 2. Preload 10 miles of tiles (edgeBufferTiles: 10)
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap',
-            edgeBufferTiles: 10 // This forces the "Preload" area
+            edgeBufferTiles: 10 
         }).addTo(map);
 
+        // --- CUSTOM STAR ICON ---
+        const blueStarIcon = L.divIcon({
+            html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="30" height="30"><path fill="#007AFF" stroke="white" stroke-width="1.5" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>`,
+            className: '',
+            iconSize: [30, 30],
+            iconAnchor: [15, 15]
+        });
+
+        // --- STAR LOCATIONS ---
+        const stars = [
+            { name: "Mission", lat: 39.7686, lng: -86.1478 }, // 520 E Market St
+            { name: "Library", lat: 39.7778, lng: -86.1573 }  // 40 E St Clair St
+        ];
+
+        stars.forEach(star => {
+            L.marker([star.lat, star.lng], { icon: blueStarIcon }).addTo(map)
+                .bindTooltip(star.name, { permanent: true, direction: 'top', className: 'label-style star-label', offset: [0, -15] });
+        });
+
+        // --- RESTAURANT LOCATIONS ---
         const restaurants = [
             { name: "The Eagle", lat: 39.7712, lng: -86.1536, desc: "Hiring: Barbacks, Hosts, Runners." },
             { name: "The Exchange", lat: 39.7711, lng: -86.1538, desc: "Hiring: Prep cooks, Key Hourly." },
@@ -45,10 +68,10 @@
         restaurants.forEach(res => {
             L.marker([res.lat, res.lng]).addTo(map)
                 .bindPopup(`<b>${res.name}</b><br>${res.desc}`)
-                .bindTooltip(res.name, { permanent: true, direction: 'right', className: 'restaurant-label' });
+                .bindTooltip(res.name, { permanent: true, direction: 'right', className: 'label-style' });
         });
 
-        // 3. Persistent GPS Tracking
+        // --- GPS AUTO-TRACKING ---
         let userMarker;
         navigator.geolocation.watchPosition((pos) => {
             const lat = pos.coords.latitude;
@@ -57,7 +80,7 @@
                 userMarker = L.marker([lat, lng], {
                     icon: L.divIcon({ className: 'user-dot', iconSize: [14, 14] })
                 }).addTo(map);
-                map.setView([lat, lng], 15);
+                map.setView([lat, lng], 16);
             } else {
                 userMarker.setLatLng([lat, lng]);
             }
