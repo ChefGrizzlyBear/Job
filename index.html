@@ -1,93 +1,119 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Indy Hiring Map - Live GPS</title>
+    <title>Indy Hiring Map - Mobile Optimized</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; background: #f0f2f5; }
-        #map { height: 650px; width: 100%; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); border: 2px solid #fff; }
-        .popup-content b { color: #2980b9; font-size: 1.1em; display: block; margin-bottom: 5px; }
-        .popup-content p { margin: 0; font-size: 0.95em; color: #34495e; }
-        h2 { color: #2c3e50; margin-bottom: 10px; }
-        .legend { background: white; padding: 10px; border-radius: 5px; line-height: 1.5; font-size: 0.85em; }
-        /* Simple pulse animation for your GPS location */
+        /* Mobile-first layout */
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; background: #f4f7f9; }
+        #map { flex-grow: 1; width: 100%; }
+        
+        /* Header styling */
+        .header { background: #2c3e50; color: white; padding: 12px 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 1000; }
+        .header h2 { margin: 0; font-size: 1.1rem; }
+        
+        /* Permanent Label Styling */
+        .restaurant-label {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #2980b9;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: bold;
+            color: #2c3e50;
+            white-space: nowrap;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        /* Improved GPS Pulse */
         .user-location-icon {
-            background-color: #3498db;
+            background: #3498db;
+            border: 2px solid white;
             border-radius: 50%;
-            border: 3px solid #fff;
-            box-shadow: 0 0 10px rgba(52, 152, 219, 0.8);
+            width: 12px;
+            height: 12px;
+            box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.7);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(52, 152, 219, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(52, 152, 219, 0); }
+        }
+
+        /* Floating Locate Button */
+        .locate-btn {
+            position: absolute; bottom: 20px; right: 20px; z-index: 1001;
+            background: #fff; border: none; width: 50px; height: 50px;
+            border-radius: 50%; box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; cursor: pointer; color: #2980b9;
         }
     </style>
 </head>
 <body>
 
-    <h2>📍 Indy Restaurant Hiring Map</h2>
-    <p><i>Note: Please click "Allow" when prompted for your location to see yourself on the map.</i></p>
-    
+    <div class="header">
+        <h2>📍 Indy Restaurant Hiring Map</h2>
+    </div>
+
     <div id="map"></div>
+    
+    <button class="locate-btn" onclick="locateUser()">🛰️</button>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Initialize map centered on downtown Indianapolis
-        const map = L.map('map').setView([39.7715, -86.153], 15);
+        const map = L.map('map', { zoomControl: false }).setView([39.7715, -86.153], 15);
+        L.control.zoom({ position: 'topleft' }).addTo(map);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
+            attribution: '© OpenStreetMap'
         }).addTo(map);
 
-        // --- Restaurant Data ---
         const restaurants = [
-            { name: "The Eagle", lat: 39.7712, lng: -86.1536, desc: "Active listings for Support (bar backs, hosts, food runners) and Utility/Dishwashers." },
-            { name: "The Exchange", lat: 39.7711, lng: -86.1538, desc: "Seeking Bartenders, Barbacks, and BOH support. General applications accepted via their portal." },
-            { name: "The Tap", lat: 39.7714, lng: -86.1542, desc: "High hiring volume: Servers, Bartenders, Hosts, and Line Cooks wanted." },
-            { name: "Bazbeaux Pizza", lat: 39.7716, lng: -86.1528, desc: "Explicitly states 'We’re hiring' for both Front and Back of house roles." },
-            { name: "Bru Burger Bar", lat: 39.7724, lng: -86.1518, desc: "Frequent active listings for Servers, Cooks, and Expo staff in downtown/Mass Ave." },
-            { name: "Garden Table", lat: 39.7719, lng: -86.1524, desc: "Often seeking Line Cooks and hospitality-focused servers. Prefers online portal apps." },
-            { name: "Vicino", lat: 39.7721, lng: -86.1521, desc: "Italian concept with an active 'Join Our Team' form on their website." },
-            { name: "The Knotted Spoon", lat: 39.7715, lng: -86.1530, desc: "Recently opened (Fall 2025). Likely hiring to maintain full staffing levels." },
-            { name: "Flatiron on Penn", lat: 39.7749, lng: -86.1559, desc: "Experienced dining room and kitchen staff are encouraged to apply via their website jobs link." },
-            { name: "Stixx (Cigar Bar)", lat: 39.7618, lng: -86.1524, desc: "Actively seeking their 'next superstar' staff members according to their site." },
-            { name: "Living Room Lounge", lat: 39.7824, lng: -86.1455, desc: "Frequent active listings for Servers and Kitchen staff on ZipRecruiter." },
-            { name: "Harrison’s", lat: 39.7853, lng: -86.1572, desc: "Active employment form available on harrisonsindy.com for all general positions." }
+            { name: "The Eagle", lat: 39.7712, lng: -86.1536, desc: "Hiring: Barbacks, Hosts, Runners, Dishwashers." },
+            { name: "The Exchange", lat: 39.7711, lng: -86.1538, desc: "Hiring: Prep cooks and Key Hourly roles." },
+            { name: "The Tap", lat: 39.7714, lng: -86.1542, desc: "Hiring: Servers, Bartenders, Hosts, Cooks." },
+            { name: "Bazbeaux", lat: 39.7716, lng: -86.1528, desc: "Hiring: Front and Back of House." },
+            { name: "Bru Burger", lat: 39.7724, lng: -86.1518, desc: "Hiring: Servers, Hosts, Cooks, Expo." },
+            { name: "Garden Table", lat: 39.7719, lng: -86.1524, desc: "Hiring: Line Cooks." },
+            { name: "Vicino", lat: 39.7721, lng: -86.1521, desc: "Hiring: Various roles via web form." },
+            { name: "The Knotted Spoon", lat: 39.7715, lng: -86.1530, desc: "Likely hiring for stability (New location)." },
+            { name: "Flatiron", lat: 39.7749, lng: -86.1559, desc: "Website lists live job links." },
+            { name: "Stixx", lat: 39.7618, lng: -86.1524, desc: "Actively seeking superstar staff." },
+            { name: "Living Room Lounge", lat: 39.7824, lng: -86.1455, desc: "Hiring: Servers and Kitchen help." },
+            { name: "Harrison’s", lat: 39.7853, lng: -86.1572, desc: "Employment form on harrisonsindy.com." }
         ];
 
-        // Add Restaurant Markers
         restaurants.forEach(res => {
-            L.marker([res.lat, res.lng]).addTo(map)
-                .bindPopup(`<div class="popup-content"><b>${res.name}</b><p>${res.desc}</p></div>`);
+            const marker = L.marker([res.lat, res.lng]).addTo(map)
+                .bindPopup(`<b>${res.name}</b><br>${res.desc}`);
+            
+            // This creates the permanent name label next to the marker
+            marker.bindTooltip(res.name, {
+                permanent: true, 
+                direction: 'right', 
+                className: 'restaurant-label',
+                offset: [10, 0]
+            });
         });
 
-        // --- GPS Geolocation Logic ---
-        function onLocationFound(e) {
-            const radius = e.accuracy / 2;
-
-            // Create a blue dot for the user
-            const userIcon = L.divIcon({
-                className: 'user-location-icon',
-                iconSize: [15, 15]
-            });
-
-            L.marker(e.latlng, { icon: userIcon }).addTo(map)
-                .bindPopup("<b>You are here</b>").openPopup();
-
-            // Optional: Draw a circle showing the accuracy of the GPS
-            L.circle(e.latlng, radius, {
-                color: '#3498db',
-                fillColor: '#3498db',
-                fillOpacity: 0.15,
-                stroke: false
-            }).addTo(map);
+        function locateUser() {
+            map.locate({ setView: true, maxZoom: 16 });
         }
 
-        function onLocationError(e) {
-            alert("Could not find your location. Make sure you have location services turned on.");
-        }
+        map.on('locationfound', function(e) {
+            const userIcon = L.divIcon({ className: 'user-location-icon' });
+            L.marker(e.latlng, { icon: userIcon }).addTo(map).bindPopup("You are here");
+        });
 
-        map.on('locationfound', onLocationFound);
-        map.on('locationerror', onLocationError);
+        map.on('locationerror', function() {
+            alert("Location access denied. Please use HTTPS to enable GPS on mobile.");
+        });
 
-        // Start looking for the user immediately
-        map.locate({ setView: true, maxZoom: 16 });
+        // Initial attempt to find location
+        locateUser();
     </script>
 </body>
 </html>
