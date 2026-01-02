@@ -1,60 +1,79 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Indy Job Hunt Map</title>
+    <title>Indy Job Hunt - Priority GPS</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { margin: 0; padding: 0; height: 100vh; font-family: sans-serif; }
+        body { margin: 0; padding: 0; height: 100vh; font-family: sans-serif; overflow: hidden; }
         #map { height: 100%; width: 100%; }
         
-        /* Permanent Label Styling */
+        /* Label Styling */
         .label-style { background: white; border: 1px solid #333; padding: 2px 5px; border-radius: 3px; font-weight: bold; font-size: 11px; }
         .star-label { border: 1px solid #007AFF; color: #007AFF; }
 
-        /* The Blue Dot (User) */
-        .user-dot { background: #007AFF; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 8px rgba(0,0,0,0.4); }
+        /* User Dot - High Z-Index to stay on top */
+        .user-dot { 
+            background: #007AFF; 
+            width: 16px; height: 16px; 
+            border-radius: 50%; 
+            border: 2px solid white; 
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            z-index: 1000 !important; /* Force to top */
+        }
+
+        /* Recenter Button */
+        .recenter-btn {
+            position: absolute; bottom: 30px; right: 20px;
+            z-index: 2000; background: white; width: 55px; height: 55px;
+            border-radius: 50%; border: 2px solid #007AFF;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 28px; cursor: pointer;
+        }
+        .recenter-btn:active { background: #f0f0f0; transform: scale(0.95); }
     </style>
 </head>
 <body>
+
     <div id="map"></div>
+    
+    <div class="recenter-btn" onclick="recenterMap()" title="Center on Me">🎯</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-edgebuffer@1.2.0/src/leaflet.edgebuffer.js"></script>
 
     <script>
-        const map = L.map('map').setView([39.7715, -86.153], 15);
+        const map = L.map('map', { zoomControl: false }).setView([39.7715, -86.153], 15);
+        L.control.zoom({ position: 'topleft' }).addTo(map);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap',
             edgeBufferTiles: 10 
         }).addTo(map);
 
-        // --- CUSTOM STAR ICON ---
+        // --- Custom Star Icon ---
         const blueStarIcon = L.divIcon({
-            html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="30" height="30"><path fill="#007AFF" stroke="white" stroke-width="1.5" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>`,
-            className: '',
-            iconSize: [30, 30],
-            iconAnchor: [15, 15]
+            html: `<svg viewBox="0 0 24 24" width="30" height="30"><path fill="#007AFF" stroke="white" stroke-width="1.5" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>`,
+            className: '', iconSize: [30, 30], iconAnchor: [15, 15]
         });
 
-        // --- STAR LOCATIONS ---
+        // --- Stars ---
         const stars = [
-            { name: "Mission", lat: 39.7686, lng: -86.1478 }, // 520 E Market St
-            { name: "Library", lat: 39.7778, lng: -86.1573 }  // 40 E St Clair St
+            { name: "Mission", lat: 39.7686, lng: -86.1478 },
+            { name: "Library", lat: 39.7778, lng: -86.1573 }
         ];
-
         stars.forEach(star => {
             L.marker([star.lat, star.lng], { icon: blueStarIcon }).addTo(map)
                 .bindTooltip(star.name, { permanent: true, direction: 'top', className: 'label-style star-label', offset: [0, -15] });
         });
 
-        // --- RESTAURANT LOCATIONS ---
+        // --- Restaurants ---
         const restaurants = [
             { name: "The Eagle", lat: 39.7712, lng: -86.1536, desc: "Hiring: Barbacks, Hosts, Runners." },
             { name: "The Exchange", lat: 39.7711, lng: -86.1538, desc: "Hiring: Prep cooks, Key Hourly." },
             { name: "The Tap", lat: 39.7714, lng: -86.1542, desc: "Hiring: Servers, Bartenders, Cooks." },
-            { name: "Bazbeaux", lat: 39.7716, lng: -86.1528, desc: "Hiring: Front/Back of House." },
+            { name: "Bazbeaux", lat: 39.7716, lng: -86.1528, desc: "Hiring: Front/Back." },
             { name: "Bru Burger", lat: 39.7724, lng: -86.1518, desc: "Hiring: Servers, Hosts, Cooks." },
             { name: "Garden Table", lat: 39.7719, lng: -86.1524, desc: "Hiring: Line Cooks." },
             { name: "Vicino", lat: 39.7721, lng: -86.1521, desc: "Hiring via web form." },
@@ -71,20 +90,36 @@
                 .bindTooltip(res.name, { permanent: true, direction: 'right', className: 'label-style' });
         });
 
-        // --- GPS AUTO-TRACKING ---
+        // --- GPS Tracker & Recenter Logic ---
         let userMarker;
-        navigator.geolocation.watchPosition((pos) => {
-            const lat = pos.coords.latitude;
-            const lng = pos.coords.longitude;
-            if (!userMarker) {
-                userMarker = L.marker([lat, lng], {
-                    icon: L.divIcon({ className: 'user-dot', iconSize: [14, 14] })
-                }).addTo(map);
-                map.setView([lat, lng], 16);
+        let currentLatLng;
+
+        function recenterMap() {
+            if (currentLatLng) {
+                map.setView(currentLatLng, 17); // Zoom in close when centering
             } else {
-                userMarker.setLatLng([lat, lng]);
+                alert("Waiting for GPS signal...");
+            }
+        }
+
+        // Create a custom pane so the user dot is always on top
+        map.createPane('userPane');
+        map.getPane('userPane').style.zIndex = 650; // Higher than standard markers (600)
+
+        navigator.geolocation.watchPosition((pos) => {
+            currentLatLng = [pos.coords.latitude, pos.coords.longitude];
+            
+            if (!userMarker) {
+                userMarker = L.marker(currentLatLng, {
+                    icon: L.divIcon({ className: 'user-dot', iconSize: [16, 16] }),
+                    pane: 'userPane' // Put it in the high-priority layer
+                }).addTo(map);
+                map.setView(currentLatLng, 16);
+            } else {
+                userMarker.setLatLng(currentLatLng);
             }
         }, (err) => console.log(err), { enableHighAccuracy: true });
+
     </script>
 </body>
 </html>
