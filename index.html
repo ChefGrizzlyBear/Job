@@ -1,47 +1,45 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Live Indy Hiring Map</title>
+    <title>Indy Hiring - 10mi Preload</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body { margin: 0; padding: 0; height: 100vh; font-family: sans-serif; }
         #map { height: 100%; width: 100%; }
-        .restaurant-label { background: white; border: 1px solid #333; padding: 2px 5px; border-radius: 3px; font-weight: bold; font-size: 12px; }
-        
-        /* The Blue Dot */
-        .user-dot {
-            background: #007AFF;
-            width: 15px; height: 15px;
-            border-radius: 50%;
-            border: 3px solid white;
-            box-shadow: 0 0 10px rgba(0,0,0,0.3);
-        }
+        .restaurant-label { background: white; border: 1px solid #333; padding: 2px 5px; border-radius: 3px; font-weight: bold; font-size: 11px; }
+        .user-dot { background: #007AFF; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 8px rgba(0,0,0,0.4); }
     </style>
 </head>
 <body>
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>
-        // 1. Setup the Map
-        const map = L.map('map').setView([39.7715, -86.153], 15);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    <script src="https://unpkg.com/leaflet-edgebuffer@1.2.0/src/leaflet.edgebuffer.js"></script>
 
-        // 2. Add Restaurants with Permanent Names
+    <script>
+        // 1. Center map on Monument Circle
+        const map = L.map('map').setView([39.7684, -86.1581], 14);
+
+        // 2. Preload 10 miles of tiles (edgeBufferTiles: 10)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap',
+            edgeBufferTiles: 10 // This forces the "Preload" area
+        }).addTo(map);
+
         const restaurants = [
-            { name: "The Eagle", lat: 39.7712, lng: -86.1536, desc: "Hiring: Barbacks, Hosts, Runners, Dishwashers." },
-            { name: "The Exchange", lat: 39.7711, lng: -86.1538, desc: "Hiring: Prep cooks and Key Hourly roles." },
-            { name: "The Tap", lat: 39.7714, lng: -86.1542, desc: "Hiring: Servers, Bartenders, Hosts, Cooks." },
-            { name: "Bazbeaux", lat: 39.7716, lng: -86.1528, desc: "Hiring: Front and Back of House." },
-            { name: "Bru Burger", lat: 39.7724, lng: -86.1518, desc: "Hiring: Servers, Hosts, Cooks, Expo." },
+            { name: "The Eagle", lat: 39.7712, lng: -86.1536, desc: "Hiring: Barbacks, Hosts, Runners." },
+            { name: "The Exchange", lat: 39.7711, lng: -86.1538, desc: "Hiring: Prep cooks, Key Hourly." },
+            { name: "The Tap", lat: 39.7714, lng: -86.1542, desc: "Hiring: Servers, Bartenders, Cooks." },
+            { name: "Bazbeaux", lat: 39.7716, lng: -86.1528, desc: "Hiring: Front/Back of House." },
+            { name: "Bru Burger", lat: 39.7724, lng: -86.1518, desc: "Hiring: Servers, Hosts, Cooks." },
             { name: "Garden Table", lat: 39.7719, lng: -86.1524, desc: "Hiring: Line Cooks." },
-            { name: "Vicino", lat: 39.7721, lng: -86.1521, desc: "Hiring: Various roles via web form." },
-            { name: "The Knotted Spoon", lat: 39.7715, lng: -86.1530, desc: "New location stability hiring." },
-            { name: "Flatiron", lat: 39.7749, lng: -86.1559, desc: "Website lists live job links." },
-            { name: "Stixx", lat: 39.7618, lng: -86.1524, desc: "Actively seeking superstar staff." },
-            { name: "Living Room Lounge", lat: 39.7824, lng: -86.1455, desc: "Hiring: Servers and Kitchen help." },
-            { name: "Harrison’s", lat: 39.7853, lng: -86.1572, desc: "Check harrisonsindy.com for forms." }
+            { name: "Vicino", lat: 39.7721, lng: -86.1521, desc: "Hiring via web form." },
+            { name: "Knotted Spoon", lat: 39.7715, lng: -86.1530, desc: "Recent opening hiring." },
+            { name: "Flatiron", lat: 39.7749, lng: -86.1559, desc: "Live job links online." },
+            { name: "Stixx", lat: 39.7618, lng: -86.1524, desc: "Seeking superstars." },
+            { name: "Living Room", lat: 39.7824, lng: -86.1455, desc: "Hiring: Servers/Kitchen." },
+            { name: "Harrison’s", lat: 39.7853, lng: -86.1572, desc: "Online employment form." }
         ];
 
         restaurants.forEach(res => {
@@ -50,35 +48,20 @@
                 .bindTooltip(res.name, { permanent: true, direction: 'right', className: 'restaurant-label' });
         });
 
-        // 3. THE AUTO-UPDATER
+        // 3. Persistent GPS Tracking
         let userMarker;
-
-        function updateLocation(position) {
-            const lat = position.coords.latitude;
-            const lng = position.coords.longitude;
-
+        navigator.geolocation.watchPosition((pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
             if (!userMarker) {
-                // First time: Create the marker and center map
                 userMarker = L.marker([lat, lng], {
-                    icon: L.divIcon({ className: 'user-dot', iconSize: [15, 15] })
-                }).addTo(map).bindPopup("You are here");
-                map.setView([lat, lng], 16);
+                    icon: L.divIcon({ className: 'user-dot', iconSize: [14, 14] })
+                }).addTo(map);
+                map.setView([lat, lng], 15);
             } else {
-                // Moving: Just update the position of the existing dot
                 userMarker.setLatLng([lat, lng]);
             }
-        }
-
-        function handleError(err) {
-            console.warn(`ERROR(${err.code}): ${err.message}`);
-        }
-
-        // This is the "Magic" line: it watches for changes and fires automatically
-        navigator.geolocation.watchPosition(updateLocation, handleError, {
-            enableHighAccuracy: true, 
-            maximumAge: 0, 
-            timeout: 10000
-        });
+        }, (err) => console.log(err), { enableHighAccuracy: true });
     </script>
 </body>
 </html>
